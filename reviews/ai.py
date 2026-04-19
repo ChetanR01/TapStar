@@ -35,16 +35,22 @@ logger = logging.getLogger(__name__)
 
 LENGTH_DESCRIPTIONS = {
     "short": "1-2 short sentences",
-    "medium": "2-3 sentences — like a quick phone message, not an essay",
-    "detailed": "3-5 sentences — still conversational, not a formal review",
+    "medium": "3-4 sentences — like a quick phone message, not an essay",
+    "detailed": "5-7 sentences — still conversational, not a formal review",
 }
 
 
-# Hard-banned phrases. The model reaches for these by default and they make
-# reviews sound fake. The list is intentionally long so the model is forced
-# to find natural alternatives instead of its usual shortcuts.
+# Hard-banned phrases. Two categories:
+#
+# (1) Corporate hype — reviews that read like marketing. Bans force the model
+#     to write like a real customer instead of reaching for clichés.
+# (2) Complaint / caveat patterns — since this tool exists to help owners get
+#     positive reviews, we explicitly forbid "had to wait", "thoda slow", "but
+#     the food was good" type constructions, backhanded compliments like "for
+#     the area" or "for what it is", and anything that describes service, food,
+#     or timing as slow / late / small / delayed.
 FORBIDDEN_PHRASES = [
-    # English clichés
+    # --- Corporate hype / clichés ---
     "highly recommend", "highly recommended", "top class", "top-notch", "five star", "5 star",
     "exceptional experience", "world class", "one of the best", "must visit", "must-visit",
     "amazing experience", "fantastic experience", "incredible experience", "outstanding",
@@ -60,35 +66,60 @@ FORBIDDEN_PHRASES = [
     # Generic hype
     "best in town", "best in city", "one-stop shop", "hidden gem",
     "truly amazing", "simply amazing", "unbelievably good", "never disappoints",
+
+    # --- Complaints / caveats / backhanded compliments (new) ---
+    # Any form of "there was a wait" or "it was slow/late"
+    "had to wait", "little wait", "a bit of a wait", "worth the wait", "long wait",
+    "was slow", "a bit slow", "bit slow", "slightly slow", "service was slow",
+    "was late", "a bit late", "slightly late", "came late", "delivery was late",
+    "thoda late", "thoda slow", "thoda wait", "wait karna pada", "wait karava lagla",
+    "थोड़ा late", "थोड़ा slow", "थोड़ा wait", "wait करना पड़ा", "थांबावं लागलं",
+    # Portion / size / quantity complaints
+    "portion was small", "small portion", "portion small", "not enough",
+    "thoda chota", "थोड़ा छोटा", "थोड़ी कम", "थोडं कमी",
+    # Price complaints / "for the area" / "for the price" backhanded framings
+    "for the area", "for the price", "for what it is", "for what we paid",
+    "area ke hisaab se", "price ke hisaab se", "paisa zyada laga",
+    "क्षेत्र के अनुसार", "area ke hisaab",
+    # Caveat openers — "but ... good"
+    "not the best", "not super", "not very", "nothing great", "nothing special",
+    "could be better", "could have been better", "room for improvement",
+    "kuch special nahi", "kuch khaas nahi", "kuch khas nahi",
+    "कुछ खास नहीं", "कुछ special नहीं",
+    # Negative framing that sneaks in
+    "not too bad", "not bad at all", "not that great",
 ]
 
 
 # Few-shot examples keyed by star rating — real reviews sound different at
-# each rating. Include gentle imperfections: run-on sentences, missing
-# punctuation, specific sensory detail, anticlimactic endings.
+# each rating, but ALL examples must be cleanly positive. No "but" caveats,
+# no mention of waits / delays / small portions / price complaints / "for
+# the area" framings. Small imperfections (missing commas, code-switching,
+# contractions) are encouraged; negativity is not.
 FEW_SHOT_EXAMPLES = {
     5: [
         # English
-        "Ordered the chicken biryani and it came hot with a boiled egg on top. Raita was plenty. Took 20 mins so not super fast but the food was worth it. Will come again for sure.",
+        "Chicken biryani came hot with a boiled egg on top, raita was enough for two. Family liked it, we're definitely coming back this weekend.",
         # Hinglish (Roman)
-        "Bhai paneer butter masala hum log regularly order karte hain yahan se, taste consistent hai har baar. Delivery bhi usually on time. Thoda spicy hota hai but that's how we like it.",
+        "Paneer butter masala yahan ka regular hai humare ghar mein. Taste har baar consistent hota hai, delivery bhi smooth rehti hai. Recommend karta hu.",
         # Hinglish (Devanagari)
-        "हमेशा family के साथ आते हैं, staff अब पहचानता है। कल बेटे का birthday था तो उन्होंने बिना बोले cake cut करवा दिया। small gesture but nice.",
+        "हमेशा family के साथ आते हैं, staff अब पहचानता है। कल बेटे का birthday था तो उन्होंने बिना बोले cake cut करवा दिया, nice gesture.",
         # Hindi (Devanagari)
-        "सर्विस अच्छी थी, खाना भी गरम आया। थाली में दाल थोड़ी कम थी लेकिन बोलने पर तुरंत और दे दी।",
+        "सर्विस अच्छी रही, खाना गरम और ताज़ा आया। staff ने पूछ-पूछ के हर चीज़ serve की।",
         # Marathi (Devanagari)
-        "आम्ही नेहमी शनिवारी इथे येतो. जेवण वेळेवर मिळतं, चव पण बरी आहे. पावभाजी विशेषतः छान असते.",
+        "आम्ही नेहमी शनिवारी इथे येतो. जेवण चांगलं असतं, चव मस्त. पावभाजी विशेषतः छान लागली.",
     ],
     4: [
-        "Good place overall. We ordered the schezwan noodles and it was decent, not too oily. Staff was polite but we had to wait around 15 mins. AC was on which was a plus in this heat.",
-        "Haircut mila thik thaak, pehle wale ne 200 charge kiye the yahan 150 me ho gaya. Waiting thoda tha Saturday tha isliye. Shop clean hai.",
-        "Delivery 10 मिनट late थी but खाना ठीक था. Portion थोड़ा छोटा लगा for the price लेकिन taste अच्छा था.",
-        "ठीक ठाक अनुभव होता. कामगारांनी कुठलीही घाई केली नाही. किंमत थोडी जास्त वाटली पण काम व्यवस्थित झालं.",
+        "Good place. Schezwan noodles had the right kick, portion looked right for one person. AC was working, staff was helpful when we asked for a menu change.",
+        "Haircut achcha kiya bhaiya ne, style bilkul waisa hi jo maine bola tha. Shop clean hai, mirror bhi achcha lighting hai.",
+        "खाना गरम और fresh मिला, taste घर जैसा लगा। delivery boy ने polite तरीके से handover किया और बिल भी सही था।",
+        "काम व्यवस्थित झालं. कामगार शांतपणे बोलले, जे सांगितलं ते नीट केलं. परत येऊ असं वाटतं.",
     ],
     3: [
-        "Food was okay. Dosa was a bit soggy but the chutney was good. Service was slow on a weekday evening, not sure why. Would come back but maybe try something else.",
-        "Accha hai but kuch special nahi laga. Bill normal tha, paisa vasool. Staff ne bola baith jao, fir 10 min baad menu aaya.",
-        "Average. Hair wash kiya aur cut karwaya, fine lag raha hai. Price zyada hi lagaya but area ke according thik hai.",
+        # 3-star: short, brief, neutral-positive. Not complaining, not gushing.
+        "Okay experience. Simple food, done right, nothing fancy. Will visit again when in the area.",
+        "Theek raha. Jo order kiya wahi mila, bill bhi normal tha. Staff ne respect se baat ki.",
+        "Average experience raha. Service normal thi, staff ne help ki, jo chahiye tha wo mil gaya.",
     ],
 }
 
@@ -109,11 +140,11 @@ CUSTOMER INPUT:
 - Target review length: {length} ({length_description})
 
 LANGUAGE DEFINITIONS:
-- hinglish: Hindi-English mix in Roman script, natural code-switching. "Paneer tikka ka taste kaafi acha tha, but service thodi slow thi."
-- hinglish_devanagari: Same Hindi-English code-switching but written in Devanagari. English words stay in Roman. "Paneer tikka का taste ठीक था, service थोड़ी slow थी."
-- minglish: Marathi-English mix in Roman script. "Jevan chan hota, staff pan helpful hote but parking problem ahe."
+- hinglish: Hindi-English mix in Roman script, natural code-switching. "Paneer tikka ka taste kaafi acha tha, staff ne jaldi serve kiya."
+- hinglish_devanagari: Same Hindi-English code-switching but written in Devanagari. English words stay in Roman. "Paneer tikka का taste अच्छा था, staff ने जल्दी serve किया।"
+- minglish: Marathi-English mix in Roman script. "Jevan chan hota, staff pan helpful hote, parking suddhya chi vyavastha hoti."
 - hindi: Pure Hindi in Devanagari script. Conversational, not formal. "खाना अच्छा था। स्टाफ ने ठीक से बात की।"
-- marathi: Pure Marathi in Devanagari script. Conversational. "जेवण बरं होतं. सेवा पण व्यवस्थित होती."
+- marathi: Pure Marathi in Devanagari script. Conversational. "जेवण छान होतं. सेवा पण व्यवस्थित होती."
 - english: Natural Indian English — not British/American. Indian sentence rhythm, mild informality.
 - random: Distribute across 4 different styles. No two variants in the same language.
 
@@ -134,14 +165,22 @@ HOW REAL REVIEWS SOUND (follow this feel, not the exact words):
 {few_shot_block}
 
 CRITICAL RULES:
-1. Write like a normal customer, not a marketer. Boring is good. Specific is better.
+1. Write like a normal happy customer, not a marketer. Specific and grounded. Boring is fine; fake is not.
 2. Name at least one concrete thing — a dish, a staff member's role, a specific product, a visible detail. If the customer gave "Specific items", weave one or two into the reviews naturally.
-3. Allow small natural imperfections: missing Oxford commas, a slightly run-on sentence, mid-sentence lowercase "i", a typo like "recieved" is fine in 1 of 4 variants only. Do NOT overdo this — 80% clean, 20% rough.
-4. Vary sentence lengths. A review with 3 equal-length sentences reads like a template.
+3. Allow small natural imperfections: missing Oxford commas, a contraction, mid-sentence lowercase "i". These make it feel typed on a phone. Do NOT introduce typos in every variant — 80%+ should be clean.
+4. Vary sentence lengths. A review with three equal-length sentences reads like a template.
 5. Do not start two variants with the same word or phrase.
-6. Match the mood to the star rating — a 3-star review should NOT say "amazing". A 5-star should be warm and specific, not breathless.
-7. If rating is 4/5, it's fine to mention one small complaint or neutral observation — real humans do this.
-8. Never use the FORBIDDEN PHRASES above. If tempted, pick a plainer alternative.
+6. Match mood to the star rating:
+   - 5 stars → warm and specific, not breathless. Reads like a returning customer.
+   - 4 stars → positive and relaxed. Still recommending without reservation.
+   - 3 stars → brief and neutral-positive. "Okay", "fine", "decent" is the ceiling — never "amazing", never complaining either.
+7. KEEP IT POSITIVE — THIS IS THE MOST IMPORTANT RULE.
+   - NEVER insert complaints, caveats, or "but..." qualifiers, even to "balance" the review.
+   - Do NOT mention: waits, queues, delays, "late", slow service, small portion size, price complaints, hot weather, anything the customer might gripe about.
+   - Do NOT use backhanded framings: "for the area", "for the price", "for what it is", "not the best but", "nothing special but", "area ke hisaab se", "paisa vasool" used as a consolation.
+   - If you can't say something cleanly positive about some aspect, just don't mention it.
+   - Even natural-sounding negative detail is banned here. A real review might say "had to wait 15 mins but it was worth it" — we don't want that. Write as if the wait never happened.
+8. Never use the FORBIDDEN PHRASES above. If tempted, pick a plainer, cleaner alternative.
 
 OUTPUT FORMAT — respond with ONLY this JSON, no explanation, no markdown fences:
 {{
