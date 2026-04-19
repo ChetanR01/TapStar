@@ -120,6 +120,83 @@ MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", BASE_DIR / "media"))
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
+# ----------------------------------------------------------------------
+# Security — all defaults are safe for dev; the production flags only
+# activate when DEBUG=False and you explicitly enable them via .env.
+# ----------------------------------------------------------------------
+
+# Honour the X-Forwarded-Proto header from nginx so Django knows the
+# request arrived over HTTPS. Without this, SECURE_SSL_REDIRECT loops.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Redirect plain HTTP → HTTPS at the Django layer. Keep off in dev.
+# Production: set SECURE_SSL_REDIRECT=True in .env once TLS is live.
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
+
+# Secure cookie flags — only send cookies over HTTPS in prod.
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
+
+# HSTS — tell browsers to only visit over HTTPS for the next N seconds.
+# Start small (e.g. 3600) while testing, then raise to 31536000 (1 year).
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
+
+# Prevent the site from being framed (clickjacking).
+X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+
+
+# ----------------------------------------------------------------------
+# Logging — structured to stdout/stderr in prod so systemd/journald can
+# collect. A rotating file is also written to LOG_DIR if provided.
+# ----------------------------------------------------------------------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO").upper()
+LOG_DIR = os.getenv("LOG_DIR")  # e.g. /var/log/tapstar — optional
+
+_log_handlers = {
+    "console": {
+        "class": "logging.StreamHandler",
+        "formatter": "verbose",
+    },
+}
+if LOG_DIR:
+    try:
+        Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
+        _log_handlers["file"] = {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(Path(LOG_DIR) / "tapstar.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        }
+    except OSError:
+        # Directory not writable — fall back to console-only rather than crash.
+        pass
+
+_active_handlers = list(_log_handlers.keys())
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} [{levelname}] {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": _log_handlers,
+    "root": {"handlers": _active_handlers, "level": LOG_LEVEL},
+    "loggers": {
+        "django": {"handlers": _active_handlers, "level": LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": _active_handlers, "level": "WARNING", "propagate": False},
+        "tapstar": {"handlers": _active_handlers, "level": LOG_LEVEL, "propagate": False},
+    },
+}
+
+
 # Auth redirects
 LOGIN_URL = "/auth/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"

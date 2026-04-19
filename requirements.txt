@@ -12,3 +12,6 @@ redis>=5.0
 django-htmx>=1.19
 whitenoise>=6.8
 reportlab>=4.2
+
+# --- Production ---
+gunicorn>=22.0
