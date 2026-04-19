@@ -4,17 +4,19 @@ from businesses.models import Business, Location
 
 
 LANGUAGE_HINGLISH = "hinglish"
+LANGUAGE_HINGLISH_DEV = "hinglish_devanagari"
 LANGUAGE_MINGLISH = "minglish"
 LANGUAGE_HINDI = "hindi"
 LANGUAGE_MARATHI = "marathi"
 LANGUAGE_ENGLISH = "english"
 LANGUAGE_RANDOM = "random"
 LANGUAGE_CHOICES = [
-    (LANGUAGE_HINGLISH, "Hinglish"),
-    (LANGUAGE_MINGLISH, "Minglish (Marathi + English)"),
-    (LANGUAGE_HINDI, "Hindi"),
-    (LANGUAGE_MARATHI, "Marathi"),
     (LANGUAGE_ENGLISH, "English"),
+    (LANGUAGE_HINGLISH, "Hinglish (Roman script)"),
+    (LANGUAGE_HINGLISH_DEV, "Hinglish (देवनागरी script)"),
+    (LANGUAGE_HINDI, "Hindi (हिंदी)"),
+    (LANGUAGE_MARATHI, "Marathi (मराठी)"),
+    (LANGUAGE_MINGLISH, "Minglish (Marathi + English)"),
     (LANGUAGE_RANDOM, "Random mix"),
 ]
 

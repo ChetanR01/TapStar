@@ -3,23 +3,26 @@ from django.conf import settings
 from django.db import models
 
 
+def _business_type_choices():
+    # Late import so the registry module isn't pulled during Django app loading
+    # in a cycle — businesses imports reviews via this lazy resolver only.
+    from reviews.business_types import flat_choices
+    return flat_choices()
+
+
 class Business(models.Model):
     TYPE_RESTAURANT = "restaurant"
     TYPE_SALON = "salon"
     TYPE_CLINIC = "clinic"
     TYPE_RETAIL = "retail"
     TYPE_OTHER = "other"
-    TYPE_CHOICES = [
-        (TYPE_RESTAURANT, "Restaurant"),
-        (TYPE_SALON, "Salon"),
-        (TYPE_CLINIC, "Clinic"),
-        (TYPE_RETAIL, "Retail"),
-        (TYPE_OTHER, "Other"),
-    ]
+    # Kept for any legacy code; the full canonical list lives in
+    # reviews/business_types.py and is used at model-choice resolution time.
+    TYPE_CHOICES = _business_type_choices()
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="businesses")
     name = models.CharField(max_length=200)
-    business_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_OTHER)
+    business_type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_OTHER)
     google_place_id = models.CharField(max_length=255, blank=True)
     google_review_url = models.URLField(max_length=500, blank=True)
     google_photo_url = models.URLField(max_length=800, blank=True)

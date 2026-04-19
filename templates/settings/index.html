@@ -172,6 +172,32 @@
 <form method="post" novalidate>
   {% csrf_token %}
 
+  <!-- Business profile -->
+  <div class="section">
+    <h2>Business profile</h2>
+    <p class="sub">The category shapes what customers see on the review page and how the AI writes reviews for you.</p>
+    <div class="row cols-2">
+      <div>
+        <label>Business name</label>
+        <input type="text" value="{{ business.name }}" disabled style="background:var(--surface-2);color:var(--muted);">
+        <small class="muted">Contact us to change your business name.</small>
+      </div>
+      <div>
+        <label for="id_business_type">Business category</label>
+        <select name="business_type" id="id_business_type">
+          {% for group_name, entries in business_type_choices %}
+            <optgroup label="{{ group_name }}">
+              {% for code, label in entries %}
+                <option value="{{ code }}" {% if code == business.business_type %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+        <small class="muted">Changing this updates your category chips and how reviews are tuned.</small>
+      </div>
+    </div>
+  </div>
+
   <!-- Language & tone -->
   <div class="section">
     <h2>Language &amp; tone</h2>

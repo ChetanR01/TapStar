@@ -1,32 +1,42 @@
-"""Pre-written fallback variants used when the Anthropic API is unavailable."""
+"""Pre-written fallback variants used when the Anthropic API is unavailable.
+
+The goal: sound like what a real customer might type, not like stock copy.
+Kept intentionally plain — short, specific, small imperfections allowed.
+"""
 
 import random
 
+
 FALLBACK_BY_LANGUAGE = {
     "english": [
-        ("casual", "Really enjoyed our visit. Food was good and the staff were friendly. Will come back."),
-        ("enthusiastic", "Had a fantastic time here! Everything was just right and the place had a lovely vibe."),
-        ("formal", "Good overall experience. The service was attentive and the quality of offerings was consistent."),
+        ("casual", "Came here on a Saturday, service was a bit slow but the food was worth the wait. Will come again."),
+        ("enthusiastic", "Liked this place. Ordered two items, both came hot and the portion size was decent. Staff was friendly too."),
+        ("formal", "A satisfactory experience overall. The staff were attentive and the quality of what we received matched the price."),
     ],
     "hinglish": [
-        ("casual", "Bhai mast experience tha, khana bhi accha aur staff bhi friendly. Zaroor wapas aayenge."),
-        ("enthusiastic", "Ekdum top class! Maza aa gaya, service fast aur taste bhi jhakaas."),
-        ("formal", "Achcha experience raha. Staff polite the aur quality bhi theek-thaak thi."),
+        ("casual", "Order thoda late aaya but taste accha tha, paisa vasool lagaa. Bhaiya ne bola weekend hai isliye."),
+        ("enthusiastic", "Yahan regular customer hai hum, quality consistent rehti hai. Pricing bhi area ke hisaab se theek hai."),
+        ("formal", "Kaafi accha anubhav raha. Staff ne time diya aur jo bola wahi mila. Aage bhi aayenge."),
+    ],
+    "hinglish_devanagari": [
+        ("casual", "Order थोड़ा late आया पर taste अच्छा था, staff ने जल्दी से serve किया। weekend था इसलिए crowd ज़्यादा था।"),
+        ("enthusiastic", "हम regular आते हैं यहाँ, quality हमेशा consistent रहती है। pricing area के हिसाब से fair है।"),
+        ("formal", "अनुभव अच्छा रहा। staff ने बिना rush किये help की और जो order किया वो exactly मिला।"),
     ],
     "minglish": [
-        ("casual", "Chhan experience hota. Jevan mast ani staff pan friendly hota. Nakki parat yeu."),
-        ("enthusiastic", "Kasla bhaari location hai! Sagla jhakaas — jevan, service, sagla."),
-        ("formal", "Changla anubhav hota. Service baryapaiki hoti aani darjja suddhyacha hota."),
+        ("casual", "Weekend la gelo hoto, thoda wait karava lagla pan jevan chan hota. Staff pan normal helpful hote."),
+        ("enthusiastic", "Ekdam regular customer ahe aamhi. Chava consistent aste, pricing pan reasonable wattate aamhala."),
+        ("formal", "Anubhav baryapaiki hota. Staff ne garaj nusta velevar thamb sangitla aani tabbal order milala."),
     ],
     "hindi": [
-        ("casual", "बहुत अच्छा लगा यहाँ आकर। खाना ठीक था और स्टाफ भी अच्छा था।"),
-        ("enthusiastic", "कमाल की जगह है! हर चीज़ बढ़िया थी, मज़ा आ गया।"),
-        ("formal", "सेवा संतोषजनक रही। गुणवत्ता और व्यवहार दोनों सराहनीय थे।"),
+        ("casual", "शनिवार को गए थे, थोड़ा wait करना पड़ा। खाना गरम था और staff ने ठीक से बात की।"),
+        ("enthusiastic", "अच्छी जगह है, हम अक्सर यहाँ आते हैं। रेट ठीक है और quality में कमी नहीं आती।"),
+        ("formal", "संतोषजनक अनुभव रहा। व्यवस्था ठीक थी और मूल्य भी क्षेत्र के अनुसार उचित लगा।"),
     ],
     "marathi": [
-        ("casual", "मस्त अनुभव होता. जेवण चांगलं आणि स्टाफ पण छान होता."),
-        ("enthusiastic", "अप्रतिम जागा आहे! सगळंच मस्त — जेवण, वातावरण, सेवा."),
-        ("formal", "सेवा समाधानकारक होती. गुणवत्ता आणि व्यवस्था दोन्ही उत्तम."),
+        ("casual", "शनिवारी गेलो होतो, थोडं थांबावं लागलं पण जेवण गरम होतं. स्टाफ पण बोलायला चांगला होता."),
+        ("enthusiastic", "आम्ही नेहमी येतो इथे, चव नेहमी सारखी असते. किंमत पण परवडेल अशी आहे."),
+        ("formal", "अनुभव समाधानकारक होता. कर्मचारी व्यवस्थित होते आणि जे मागवलं तेच वेळेत मिळालं."),
     ],
 }
 
@@ -34,7 +44,6 @@ FALLBACK_BY_LANGUAGE = {
 def build_fallback_variants(language_mode: str, business_name: str | None = None) -> list[dict]:
     """Return 4 variants using pre-written text. Used when AI is unavailable."""
     if language_mode == "random":
-        # Pick 4 different language/tone combos
         pool = []
         for lang, entries in FALLBACK_BY_LANGUAGE.items():
             for tone, text in entries:
@@ -44,7 +53,6 @@ def build_fallback_variants(language_mode: str, business_name: str | None = None
     else:
         entries = FALLBACK_BY_LANGUAGE.get(language_mode) or FALLBACK_BY_LANGUAGE["english"]
         picks = []
-        # Cycle through 4 tones (allowing a repeat if needed)
         for i in range(4):
             tone, text = entries[i % len(entries)]
             picks.append((language_mode, tone, text))
@@ -52,7 +60,6 @@ def build_fallback_variants(language_mode: str, business_name: str | None = None
     variants = []
     for idx, (lang, tone, text) in enumerate(picks, start=1):
         if business_name and business_name.lower() not in text.lower() and idx % 2 == 0:
-            # Lightly personalise every other variant
             text = f"{text} — {business_name}"
         variants.append({
             "variant_number": idx,

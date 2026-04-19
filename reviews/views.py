@@ -15,23 +15,27 @@ from businesses.models import Location
 from settings_mgr.services import get_effective_settings
 
 from .ai import GenerationInput, generate_variants
+from .business_types import category_labels_for
 from .models import ReviewRequest, ReviewVariant, ReviewSubmission
 
 logger = logging.getLogger(__name__)
 
 
-# Languages exposed in the customer UI when business allows switching
+# Languages exposed in the customer UI when business allows switching.
+# Native-script labels so Hindi/Marathi speakers can spot their option instantly.
 CUSTOMER_LANGUAGE_OPTIONS = [
     {"code": "english", "label": "English"},
     {"code": "hinglish", "label": "Hinglish"},
+    {"code": "hinglish_devanagari", "label": "Hinglish (देवनागरी)"},
+    {"code": "hindi", "label": "हिंदी"},
+    {"code": "marathi", "label": "मराठी"},
     {"code": "minglish", "label": "Marathi-English"},
-    {"code": "hindi", "label": "Hindi"},
-    {"code": "marathi", "label": "Marathi"},
     {"code": "random", "label": "Surprise me"},
 ]
 
 
-CATEGORY_LABELS = {
+# Fallback label lookup when a saved category key isn't in the type registry.
+_LEGACY_CATEGORY_LABELS = {
     "food": "Food",
     "staff": "Staff",
     "service": "Service",
@@ -64,8 +68,12 @@ def customer_review_page(request, token):
         raise Http404()
 
     effective = get_effective_settings(location)
+    type_labels = category_labels_for(business.business_type)
     enabled_categories = [
-        {"key": k, "label": CATEGORY_LABELS.get(k, k.title())}
+        {
+            "key": k,
+            "label": type_labels.get(k) or _LEGACY_CATEGORY_LABELS.get(k) or k.replace("_", " ").title(),
+        }
         for k in effective.enabled_category_keys()
     ]
 

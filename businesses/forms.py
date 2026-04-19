@@ -1,5 +1,7 @@
 from django import forms
 
+from reviews.business_types import grouped_choices
+
 from .models import Business, Location
 from .utils import fetch_place_photo_url, resolve_and_parse
 
@@ -57,6 +59,12 @@ class _PlaceIdParsingMixin:
 
 
 class BusinessOnboardingForm(_PlaceIdParsingMixin, forms.ModelForm):
+    business_type = forms.ChoiceField(
+        choices=[("", "Select your business type…")] + list(grouped_choices()),
+        label="Business type",
+        help_text="Pick the closest match — we use this to tune what customers see and how reviews are written.",
+    )
+
     class Meta:
         model = Business
         fields = ("name", "business_type", "google_place_id", "address", "logo")

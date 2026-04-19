@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 
 from businesses.models import Location
+from reviews.business_types import default_categories_map
 from .models import BusinessSettings, LocationSettings, DEFAULT_CATEGORIES
 
 
@@ -53,7 +54,7 @@ def get_effective_settings(location: Location) -> EffectiveSettings:
             return overrides[field_name]
         return getattr(bs, field_name)
 
-    categories = resolve("categories_enabled") or dict(DEFAULT_CATEGORIES)
+    categories = resolve("categories_enabled") or default_categories_map(location.business.business_type)
 
     return EffectiveSettings(
         language_mode=resolve("language_mode"),
