@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == 'add' %}Add location{% else %}Edit {{ location.name }}{% endif %} — Tapstar{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 520px; margin: 20px auto;">
+  <h1>{% if mode == 'add' %}Add a location{% else %}Edit {{ location.name }}{% endif %}</h1>
+  <p class="muted">
+    {% if mode == 'add' %}
+      Each location gets its own QR code and review URL.
+    {% else %}
+      Update the name or Google Place ID for this location.
+    {% endif %}
+  </p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+      {{ field.errors }}
+    {% endfor %}
+    <div style="margin-top: 20px; display: flex; gap: 12px;">
+      <button type="submit" class="btn">{% if mode == 'add' %}Add location{% else %}Save{% endif %}</button>
+      <a href="{% url 'dashboard_home' %}" class="btn secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Print templates — {{ location.name }} — Tapstar{% endblock %}
+
+{% block extra_head %}
+<style>
+  .gallery-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .back-link:hover { color: var(--ink); }
+  .back-link svg { width: 14px; height: 14px; }
+
+  .design-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .design-card {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .18s, transform .18s;
+  }
+  .design-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+  .thumb {
+    aspect-ratio: 1 / 1.2;
+    background: linear-gradient(135deg, var(--surface-2), #fff);
+    border-bottom: 1px solid var(--border-2);
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .thumb .mini {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
+    width: 70%;
+    aspect-ratio: 3 / 4;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .thumb .mini .strip {
+    height: 14%;
+    background: linear-gradient(90deg, var(--brand), var(--accent));
+    flex-shrink: 0;
+  }
+  .thumb .mini .body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+  }
+  .thumb .mini .qr-box {
+    width: 60%;
+    aspect-ratio: 1;
+    background:
+      repeating-conic-gradient(var(--ink) 0 25%, #fff 0 50%) 0 0/6px 6px;
+    border-radius: 2px;
+    opacity: .85;
+  }
+  .thumb .mini .cap {
+    font-size: 7px;
+    text-align: center;
+    color: var(--muted-2);
+    padding: 3px 0;
+    border-top: 1px solid var(--border-2);
+  }
+
+  /* Variants for differing mini previews */
+  .thumb.variant-poster .mini .strip { height: 22%; }
+  .thumb.variant-tent { padding: 22px; }
+  .thumb.variant-tent .mini {
+    aspect-ratio: 4 / 3;
+    width: 90%;
+  }
+  .thumb.variant-tent .mini::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    border-top: 1px dashed var(--muted-2);
+    opacity: .5;
+  }
+  .thumb.variant-counter .mini { width: 56%; }
+  .thumb.variant-stickers .mini .body {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+    padding: 4px;
+  }
+  .thumb.variant-stickers .mini .qr-box {
+    width: 100%;
+    background:
+      repeating-conic-gradient(var(--ink) 0 25%, #fff 0 50%) 0 0/3px 3px;
+  }
+
+  .design-body {
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .design-body h3 { margin: 0; font-size: 16px; }
+  .design-body .subtitle { color: var(--ink-3); font-size: 13px; font-weight: 500; }
+  .design-body .size { color: var(--muted); font-size: 12px; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .design-body .best-for {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+  .design-body .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .design-body .actions .btn { flex: 1; min-height: 40px; padding: 9px 14px; font-size: 13px; }
+
+  .pro-notice {
+    background: linear-gradient(135deg, var(--brand-50), var(--accent-50));
+    border: 1px dashed var(--brand-100);
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    color: var(--brand-700);
+    font-size: 14px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pro-notice .btn { white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <a href="{% url 'dashboard_home' %}" class="back-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to dashboard
+  </a>
+
+  <div class="gallery-head">
+    <div>
+      <h1>Print templates</h1>
+      <p class="muted">Ready-to-print PDFs for <strong>{{ business.name }}</strong> · {{ location.name }}. Each template uses a high-resolution QR and is sized to standard paper.</p>
+    </div>
+  </div>
+
+  {% if not pro_allowed %}
+    <div class="pro-notice">
+      <span>Print templates are part of the <strong>Growth plan</strong>. You'll see previews here — upgrade to download.</span>
+      <a href="{% url 'upgrade' %}" class="btn primary sm">Upgrade</a>
+    </div>
+  {% endif %}
+
+  <div class="design-grid">
+    {% for d in designs %}
+      <div class="design-card">
+        <div class="thumb variant-{{ d.key }}">
+          <div class="mini">
+            <div class="strip"></div>
+            <div class="body">
+              {% if d.key == 'stickers' %}
+                <div class="qr-box"></div><div class="qr-box"></div>
+                <div class="qr-box"></div><div class="qr-box"></div>
+                <div class="qr-box"></div><div class="qr-box"></div>
+              {% else %}
+                <div class="qr-box"></div>
+              {% endif %}
+            </div>
+            <div class="cap">{{ business.name|truncatechars:18 }}</div>
+          </div>
+        </div>
+        <div class="design-body">
+          <h3>{{ d.title }}</h3>
+          <span class="subtitle">{{ d.subtitle }}</span>
+          <span class="size">{{ d.size }}</span>
+          <span class="best-for">{{ d.best_for }}</span>
+          <div class="actions">
+            {% if pro_allowed %}
+              <a class="btn secondary" href="{% url 'location_print_pdf' location.id d.key %}?preview=1" target="_blank" rel="noopener" title="Open preview in a new tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview
+              </a>
+              <a class="btn primary" href="{% url 'location_print_pdf' location.id d.key %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+            {% else %}
+              <a class="btn secondary" href="{% url 'upgrade' %}">Upgrade to unlock</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

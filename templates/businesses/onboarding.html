@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Set up your business — Tapstar{% endblock %}
+
+{% block content %}
+  <div class="card" style="max-width: 560px; margin: 24px auto;">
+    <h1>Tell us about your business</h1>
+    <p class="muted">We'll generate your unique QR code right after this.</p>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+        {{ field.errors }}
+      {% endfor %}
+      <p class="helptext" style="margin-top: 16px;">
+        Easiest way: open your business on
+        <a href="https://www.google.com/maps" target="_blank" rel="noopener">Google Maps</a>
+        → tap <strong>Share</strong> → <strong>Copy link</strong>, then paste it above.
+        You can also add it later from the dashboard.
+      </p>
+      <button type="submit" class="btn" style="margin-top: 20px;">Create business</button>
+    </form>
+  </div>
+{% endblock %}

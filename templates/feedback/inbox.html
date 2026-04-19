@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback inbox — Tapstar{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+<style>
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .tab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .tab:hover { text-decoration: none; }
+
+  .fb-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .fb-row.unread { border-left: 4px solid #dc2626; background: #fef2f2; }
+  .fb-stars { color: #fbbf24; font-size: 18px; letter-spacing: 2px; }
+  .fb-main { flex: 1; min-width: 0; }
+  .fb-text { white-space: pre-wrap; word-break: break-word; margin: 8px 0; }
+  .fb-meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .fb-meta a { color: var(--muted); }
+  .fb-actions { display: flex; flex-direction: column; gap: 6px; min-width: 120px; }
+  .fb-actions button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .fb-actions button:hover { background: #f3f4f6; }
+  .fb-actions .primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .fb-badge {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .fb-badge.read { background: #e5e7eb; color: #6b7280; }
+  .empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+  }
+  .pagination { margin-top: 20px; display: flex; gap: 8px; justify-content: center; }
+  .pagination a, .pagination span {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .pagination .current { background: var(--brand); color: #fff; border-color: var(--brand); }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h1>Feedback inbox</h1>
+  <p class="muted">Private feedback from customers who gave low ratings — never reaches Google.</p>
+
+  <div class="tabs">
+    <a href="?filter=all" class="tab {% if filter_mode == 'all' %}active{% endif %}">All ({{ total }})</a>
+    <a href="?filter=unread" class="tab {% if filter_mode == 'unread' %}active{% endif %}">Unread ({{ unread_total }})</a>
+  </div>
+
+  <div id="fb-list">
+    {% for fb in page_obj.object_list %}
+      {% include "feedback/_feedback_row.html" with fb=fb %}
+    {% empty %}
+      <div class="empty">
+        {% if filter_mode == 'unread' %}
+          No unread feedback. Nice.
+        {% else %}
+          No feedback yet. Low-rating customers will show up here.
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?filter={{ filter_mode }}&page={{ page_obj.previous_page_number }}">Prev</a>
+      {% endif %}
+      <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?filter={{ filter_mode }}&page={{ page_obj.next_page_number }}">Next</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

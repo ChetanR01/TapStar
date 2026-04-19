@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Login — Tapstar{% endblock %}
+
+{% block content %}
+  <div class="card" style="max-width: 440px; margin: 40px auto;">
+    <h1>Log in</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      {% endfor %}
+      {{ form.non_field_errors }}
+      <button type="submit" class="btn" style="margin-top: 20px; width: 100%;">Log in</button>
+    </form>
+    <p class="muted" style="margin-top: 20px; text-align: center;">
+      New to Tapstar? <a href="{% url 'signup' %}">Sign up free</a>
+    </p>
+  </div>
+{% endblock %}

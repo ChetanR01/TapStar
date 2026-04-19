@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Payment {% if ok %}successful{% else %}issue{% endif %} — Tapstar{% endblock %}
+
+{% block content %}
+  <div class="card" style="max-width: 520px; margin: 40px auto; text-align: center;">
+    {% if ok %}
+      <div style="width:64px;height:64px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:36px;margin:0 auto 16px;">&#10003;</div>
+      <h1>Payment received</h1>
+      <p class="muted">Your {{ payment.plan|title }} plan is now active.</p>
+      {% if payment.easebuzz_payment_id %}
+        <p class="muted" style="font-size:13px;">Reference: <code>{{ payment.easebuzz_payment_id }}</code></p>
+      {% endif %}
+      <p style="margin-top: 24px;">
+        <a class="btn" href="{% url 'dashboard_home' %}">Go to dashboard</a>
+      </p>
+    {% else %}
+      <div style="width:64px;height:64px;background:#dc2626;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:36px;margin:0 auto 16px;">!</div>
+      <h1>Payment not completed</h1>
+      <p class="muted">{{ message }}</p>
+      {% if payment %}
+        <p class="muted" style="font-size:13px;">Reference: <code>{{ payment.easebuzz_txnid }}</code></p>
+      {% endif %}
+      <p style="margin-top: 24px;">
+        <a class="btn" href="{% url 'upgrade' %}">Try again</a>
+        <a href="{% url 'dashboard_home' %}" style="margin-left: 12px;">Back to dashboard</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

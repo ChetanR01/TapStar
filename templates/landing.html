@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Tapstar — AI-powered Google reviews for your business{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h1>Get more Google reviews. In Hindi, Marathi, Hinglish — or any language.</h1>
+    <p class="muted">
+      Customers scan a QR at your counter. Tapstar's AI writes the review for them.
+      They tap Submit on Google. Bad reviews (1-2 stars) never reach Google — they come to you privately.
+    </p>
+    <p style="margin-top: 20px;">
+      <a class="btn" href="{% url 'signup' %}">Start free</a>
+      <a href="{% url 'login' %}" style="margin-left: 12px;">Already have an account?</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>How it works</h2>
+    <ol>
+      <li>Register your business and link your Google Place ID.</li>
+      <li>Download your unique QR — print it or stick it at the counter.</li>
+      <li>Customer scans, picks rating + what they experienced.</li>
+      <li>AI generates 4 review variants in different Indian language styles.</li>
+      <li>Customer taps Submit. Done.</li>
+    </ol>
+  </div>
+{% endblock %}

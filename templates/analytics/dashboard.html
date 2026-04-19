@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics — {{ business.name }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<style>
+  .kpis {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 20px;
+  }
+  @media (min-width: 720px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .kpi .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .kpi .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .kpi .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .charts {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+    margin-bottom: 20px;
+  }
+  @media (min-width: 900px) { .charts { grid-template-columns: 2fr 1fr; } }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-card h2 { margin: 0 0 12px 0; font-size: 16px; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  .snapshot {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) { .snapshot { grid-template-columns: 1fr 1fr; } }
+  .snapshot .card h2 { margin-top: 0; }
+  .snapshot .delta {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--success);
+  }
+  .snapshot .delta.negative { color: var(--danger); }
+  .snapshot .muted-small { color: var(--muted); font-size: 13px; }
+  .snapshot form label { margin: 10px 0 4px 0; }
+  .snapshot form button {
+    margin-top: 12px;
+    padding: 10px 16px;
+    border: none;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h1>Analytics</h1>
+  <p class="muted">{{ business.name }} · last 30 days</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Reviews generated</div>
+      <div class="value">{{ data.generated_month }}</div>
+      <div class="sub">this month · {{ data.generated_total }} all-time</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Submitted to Google</div>
+      <div class="value">{{ data.submitted_month }}</div>
+      <div class="sub">this month · {{ data.submitted_total }} all-time</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Negative redirects</div>
+      <div class="value">{{ data.negative_month }}</div>
+      <div class="sub">this month · {{ data.negative_total }} all-time</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Avg star rating</div>
+      <div class="value">{{ data.avg_rating_month|default:"—" }}</div>
+      <div class="sub">this month</div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h2>Daily submissions — last 30 days</h2>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h2>Category split</h2>
+      <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts" style="grid-template-columns: 1fr;">
+    <div class="chart-card">
+      <h2>Language breakdown</h2>
+      <div class="chart-wrap" style="max-width: 360px; margin: 0 auto;"><canvas id="donutChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="snapshot">
+    <div class="card">
+      <h2>Google review count — since joining</h2>
+      {% if data.google_baseline is None %}
+        <p class="muted">Log your current Google review count on the right. Come back each month so you can see it go up.</p>
+      {% else %}
+        {% if data.google_delta > 0 %}
+          <div class="delta">+{{ data.google_delta }}</div>
+        {% elif data.google_delta < 0 %}
+          <div class="delta negative">{{ data.google_delta }}</div>
+        {% else %}
+          <div class="delta" style="color:var(--muted);">0</div>
+        {% endif %}
+        <p class="muted-small">
+          Baseline: {{ data.google_baseline }} on {{ data.google_baseline_date|date:"d M Y" }}<br>
+          Current: {{ data.google_current }} on {{ data.google_current_date|date:"d M Y" }}
+        </p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>Update your Google count</h2>
+      <p class="muted-small">Go to your Google Business profile, note the number of reviews, enter it here.</p>
+      <form method="post" action="{% url 'analytics_google_snapshot' %}">
+        {% csrf_token %}
+        <label for="review_count">Current review count</label>
+        <input type="number" id="review_count" name="review_count" min="0" required>
+        <label for="snap_date">Date</label>
+        <input type="date" id="snap_date" name="snap_date" value="{{ today|date:'Y-m-d' }}">
+        <label for="note">Note (optional)</label>
+        <input type="text" id="note" name="note" maxlength="200" placeholder="e.g. after Diwali campaign">
+        <button type="submit">Save snapshot</button>
+      </form>
+    </div>
+  </div>
+
+  <script id="chart-payload" type="application/json">{{ chart_payload_json|safe }}</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof Chart === 'undefined') {
+        setTimeout(arguments.callee, 100);
+        return;
+      }
+      var data = JSON.parse(document.getElementById('chart-payload').textContent);
+      var grid = 'rgba(0,0,0,0.05)';
+
+      new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: {
+          labels: data.series_dates,
+          datasets: [
+            { label: 'Submitted', data: data.series_submitted, borderColor: '#1f6feb', backgroundColor: 'rgba(31,111,235,0.1)', tension: 0.3, fill: true },
+            { label: 'Generated', data: data.series_generated, borderColor: '#94a3b8', borderDash: [4,4], tension: 0.3, fill: false },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { x: { grid: { color: grid } }, y: { beginAtZero: true, grid: { color: grid }, ticks: { precision: 0 } } },
+        },
+      });
+
+      new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+          labels: data.category_labels,
+          datasets: [{ data: data.category_counts, backgroundColor: '#1f6feb', borderRadius: 6 }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: grid }, ticks: { precision: 0 } } },
+        },
+      });
+
+      new Chart(document.getElementById('donutChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.language_labels,
+          datasets: [{
+            data: data.language_counts,
+            backgroundColor: ['#1f6feb','#16a34a','#f59e0b','#dc2626','#8b5cf6','#64748b'],
+          }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+      });
+    });
+  </script>
+{% endblock %}

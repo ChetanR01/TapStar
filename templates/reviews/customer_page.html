@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#2563eb">
+<title>{{ business.name }} — Leave a review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #2563eb;
+    --brand-600: #1d4ed8;
+    --brand-700: #1e40af;
+    --brand-50: #eff6ff;
+    --brand-100: #dbeafe;
+    --accent: #7c3aed;
+    --accent-50: #f5f3ff;
+    --ink: #0b1220;
+    --ink-2: #1f2937;
+    --ink-3: #374151;
+    --muted: #64748b;
+    --muted-2: #94a3b8;
+    --border: #e5e7eb;
+    --border-2: #eef2f7;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --success: #059669;
+    --success-50: #ecfdf5;
+    --success-100: #d1fae5;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --star: #fbbf24;
+    --star-empty: #e5e7eb;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+    --shadow-xs: 0 1px 2px rgba(11, 18, 32, .04);
+    --shadow-sm: 0 1px 3px rgba(11, 18, 32, .06), 0 1px 2px rgba(11, 18, 32, .04);
+    --shadow-md: 0 4px 6px -1px rgba(11, 18, 32, .07), 0 2px 4px -2px rgba(11, 18, 32, .05);
+    --shadow-lg: 0 10px 15px -3px rgba(11, 18, 32, .08), 0 4px 6px -4px rgba(11, 18, 32, .05);
+    --shadow-xl: 0 20px 30px -8px rgba(11, 18, 32, .12), 0 8px 10px -6px rgba(11, 18, 32, .04);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(1000px 500px at 0% 0%, rgba(37, 99, 235, 0.09), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgba(124, 58, 237, 0.08), transparent 60%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    background-attachment: fixed;
+  }
+  .container {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 16px 28px;
+    flex: 1;
+  }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 24px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-2);
+    animation: fadeSlide .3s cubic-bezier(.4,.8,.2,1.1);
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 28px 16px 10px;
+  }
+  .logo {
+    width: 68px; height: 68px;
+    border-radius: 18px;
+    object-fit: cover;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 14px;
+    border: 2px solid #fff;
+  }
+  .logo.cover {
+    width: 96px; height: 96px;
+    border-radius: 20px;
+  }
+  .logo-fallback {
+    width: 68px; height: 68px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 28px;
+    margin: 0 auto 14px;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, .3);
+    letter-spacing: -0.02em;
+  }
+  .hero h1 { font-size: 24px; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.025em; }
+  .hero p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* Segmented progress */
+  .progress {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin: 12px 0 18px;
+    padding: 0 8px;
+  }
+  .progress .dot {
+    flex: 1;
+    max-width: 56px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background .25s, transform .2s;
+  }
+  .progress .dot.on { background: linear-gradient(to right, var(--brand), var(--accent)); }
+  .progress .dot.done { background: var(--success); }
+
+  h2 { font-size: 20px; margin: 0 0 8px; font-weight: 700; letter-spacing: -0.02em; }
+  p.question { font-size: 18px; margin: 0 0 14px; font-weight: 600; letter-spacing: -0.01em; }
+
+  /* Stars */
+  .stars {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 0 14px;
+  }
+  .star-btn {
+    width: 54px; height: 54px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+    color: var(--star-empty);
+    transition: transform .12s cubic-bezier(.4,.8,.2,1.4), color .15s ease;
+  }
+  .star-btn:hover { transform: scale(1.08); }
+  .star-btn.filled { color: var(--star); text-shadow: 0 2px 8px rgba(251, 191, 36, .3); }
+  .star-btn.filled.pop { animation: pop .32s cubic-bezier(.4,.8,.2,1.4); }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+  .rating-hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 500;
+    height: 22px;
+    transition: color .2s;
+  }
+
+  /* Chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-2);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    font-family: inherit;
+    transition: all .15s ease;
+  }
+  .chip:hover { border-color: var(--muted-2); }
+  .chip:active { transform: scale(.97); }
+  .chip.selected {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(11, 18, 32, .18);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 14px 22px;
+    border-radius: 14px;
+    border: none;
+    background: var(--ink);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    font-family: inherit;
+    letter-spacing: -0.005em;
+    transition: all .15s ease;
+    box-shadow: 0 4px 14px rgba(11, 18, 32, .18);
+  }
+  .btn:hover { background: var(--ink-2); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(11, 18, 32, .24); }
+  .btn:active { transform: translateY(0) scale(.99); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn.secondary {
+    background: var(--surface);
+    color: var(--ink-2);
+    border: 1.5px solid var(--border);
+    box-shadow: none;
+  }
+  .btn.secondary:hover { background: var(--surface-2); border-color: var(--ink-3); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--ink); transform: none; box-shadow: none; }
+  .btn.green {
+    background: var(--success);
+    box-shadow: 0 4px 14px rgba(5, 150, 105, .3);
+  }
+  .btn.green:hover { background: #047857; box-shadow: 0 6px 18px rgba(5, 150, 105, .4); }
+  .btn + .btn { margin-top: 10px; }
+  .btn .arrow { transition: transform .2s; }
+  .btn:hover .arrow { transform: translateX(3px); }
+
+  /* Variant cards */
+  .variant-card {
+    position: relative;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: all .18s cubic-bezier(.4,.8,.2,1);
+  }
+  .variant-card:hover {
+    border-color: var(--muted-2);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .variant-card.selected {
+    border-color: var(--brand);
+    background: linear-gradient(135deg, var(--brand-50), #fff);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, .14);
+  }
+  .variant-card.selected::after {
+    content: "✓";
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, .3);
+  }
+  .variant-tags {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--brand-50);
+    color: var(--brand-700);
+  }
+  .tag.tone { background: #fef3c7; color: #92400e; }
+  .variant-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Inputs */
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--ink);
+    resize: vertical;
+    background: var(--surface);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+  input[type=text], input[type=tel] {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 16px;
+    background: var(--surface);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 14px 0 6px;
+    color: var(--ink-2);
+    letter-spacing: .01em;
+  }
+
+  /* Loading state */
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border-2);
+    border-top-color: var(--brand);
+    border-right-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+    margin: 28px auto 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gen-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 300px;
+    margin: 10px auto 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .gen-steps span {
+    padding: 4px 0;
+    transition: color .3s, transform .3s;
+    opacity: .4;
+  }
+  .gen-steps span.active {
+    color: var(--brand);
+    font-weight: 600;
+    opacity: 1;
+    transform: scale(1.02);
+  }
+
+  .center { text-align: center; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .hidden { display: none !important; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 50;
+    box-shadow: var(--shadow-xl);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Success */
+  .success-icon {
+    width: 76px; height: 76px;
+    margin: 0 auto 18px;
+    background: linear-gradient(135deg, var(--success), #10b981);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 40px;
+    box-shadow: 0 10px 24px rgba(5, 150, 105, .3);
+    animation: pop-in .45s cubic-bezier(.4,.8,.2,1.4);
+  }
+  @keyframes pop-in {
+    0% { transform: scale(0) rotate(-20deg); }
+    60% { transform: scale(1.12) rotate(5deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .copied-banner {
+    background: linear-gradient(135deg, var(--success-50), #f0fdf4);
+    border: 1.5px solid var(--success-100);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .copied-banner .icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(5, 150, 105, .25);
+  }
+  .copied-banner strong { color: #065f46; display: block; font-size: 15px; font-weight: 600; }
+  .copied-banner .sub { color: #047857; font-size: 13px; }
+
+  .review-preview {
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    padding: 14px 16px;
+    border-radius: 12px;
+    color: var(--ink-2);
+    font-size: 15px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+  }
+  .review-preview::before {
+    content: "\201C";
+    position: absolute;
+    top: -8px;
+    left: 10px;
+    font-size: 38px;
+    color: var(--muted-2);
+    line-height: 1;
+    font-family: Georgia, serif;
+    background: var(--surface-2);
+    padding: 0 6px;
+  }
+
+  .step-list {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 16px 0;
+  }
+  .step-list li {
+    counter-increment: step;
+    position: relative;
+    padding: 12px 14px 12px 48px;
+    margin-bottom: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .step-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  footer {
+    text-align: center;
+    padding: 18px 16px 28px;
+    font-size: 12px;
+    color: var(--muted-2);
+  }
+  footer a {
+    color: var(--muted);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  footer a:hover { color: var(--brand); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="hero">
+    {% if business.logo %}
+      <img class="logo" src="{{ business.logo.url }}" alt="{{ business.name }}">
+    {% elif business.google_photo_url %}
+      <img class="logo cover" src="{{ business.google_photo_url }}" alt="{{ business.name }}" loading="lazy" referrerpolicy="no-referrer">
+    {% else %}
+      <div class="logo-fallback">{{ business.name|slice:":1"|upper }}</div>
+    {% endif %}
+    <h1>{{ business.name }}</h1>
+    <p>{{ business.get_business_type_display }}{% if business.address %} &middot; {{ business.address|truncatechars:60 }}{% endif %}</p>
+  </header>
+
+  <div class="progress" id="progress">
+    <span class="dot on"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+    <span class="dot"></span>
+  </div>
+
+  <!-- STATE: rating -->
+  <section id="state-rating" class="card">
+    <p class="question center">How was your experience?</p>
+    <div class="stars" id="starPicker">
+      <button class="star-btn" data-rating="1" aria-label="1 star">&#9733;</button>
+      <button class="star-btn" data-rating="2" aria-label="2 stars">&#9733;</button>
+      <button class="star-btn" data-rating="3" aria-label="3 stars">&#9733;</button>
+      <button class="star-btn" data-rating="4" aria-label="4 stars">&#9733;</button>
+      <button class="star-btn" data-rating="5" aria-label="5 stars">&#9733;</button>
+    </div>
+    <p class="rating-hint" id="ratingHint">Tap a star to begin</p>
+  </section>
+
+  <!-- STATE: categories -->
+  <section id="state-categories" class="card hidden">
+    <h2>What stood out?</h2>
+    <p class="muted" style="margin:-4px 0 14px;">Pick one or more</p>
+    <div class="chips" id="categoryChips"></div>
+    <button class="btn" id="toItemsBtn" disabled>
+      Continue
+      <span class="arrow">→</span>
+    </button>
+  </section>
+
+  <!-- STATE: items -->
+  <section id="state-items" class="card hidden">
+    <h2>Anything specific?</h2>
+    <p class="muted" style="margin:-4px 0 14px;">Optional — tap anything you tried</p>
+    <div class="chips" id="itemChips"></div>
+    <button class="btn" id="toLanguageBtn">
+      Continue
+      <span class="arrow">→</span>
+    </button>
+  </section>
+
+  <!-- STATE: language -->
+  <section id="state-language" class="card hidden">
+    <h2>Pick a language</h2>
+    <p class="muted" style="margin:-4px 0 14px;">Your review will be written in this style</p>
+    <div class="chips" id="languageChips"></div>
+    <button class="btn" id="generateBtn">
+      <span>&#10024;</span>
+      Generate review
+    </button>
+  </section>
+
+  <!-- STATE: generating -->
+  <section id="state-generating" class="card hidden center">
+    <div class="spinner"></div>
+    <h2 style="text-align:center;">Writing your review…</h2>
+    <div class="gen-steps">
+      <span id="g1" class="active">Picking a style</span>
+      <span id="g2">Crafting 4 options</span>
+      <span id="g3">Almost ready</span>
+    </div>
+  </section>
+
+  <!-- STATE: variants -->
+  <section id="state-variants" class="hidden">
+    <div class="card">
+      <h2>Pick one you like</h2>
+      <p class="muted" style="margin:-4px 0 14px;">Tap to select. Edit below if you want to tweak.</p>
+      <div id="variantList"></div>
+      <button class="btn ghost" id="regenerateBtn" style="margin-top:10px;">
+        <span>&#x21bb;</span>
+        Generate 4 more
+      </button>
+    </div>
+    <div class="card">
+      <label for="finalText">Your review</label>
+      <textarea id="finalText" rows="5"></textarea>
+      <button class="btn green" id="submitToGoogleBtn" style="margin-top:16px;">
+        Submit on Google
+        <span class="arrow">→</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- STATE: submit-confirm -->
+  <section id="state-submit-confirm" class="hidden">
+    <div class="card">
+      <div class="copied-banner">
+        <div class="icon">&#10003;</div>
+        <div>
+          <strong>Your review is copied</strong>
+          <span class="sub">Ready to paste on Google</span>
+        </div>
+      </div>
+
+      <h2>One last step</h2>
+      <p class="muted" style="margin:-4px 0 4px;">Google doesn't let us prefill. Just follow these steps on their page:</p>
+
+      <ol class="step-list">
+        <li>Tap the star rating you want</li>
+        <li>Tap the review text box</li>
+        <li>Tap and hold, then <strong>Paste</strong></li>
+        <li>Tap <strong>Post</strong></li>
+      </ol>
+
+      <label style="margin-top:6px;">Your review (already copied)</label>
+      <div class="review-preview" id="reviewPreview"></div>
+
+      <button class="btn green" id="openGoogleBtn" style="margin-top:18px;">
+        Open Google review page
+        <span class="arrow">→</span>
+      </button>
+      <button class="btn secondary" id="copyAgainBtn">Copy review again</button>
+    </div>
+  </section>
+
+  <!-- STATE: submitted -->
+  <section id="state-submitted" class="card hidden center">
+    <div class="success-icon">&#10003;</div>
+    <h2>Thank you!</h2>
+    <p class="muted">Your review helps {{ business.name }} grow.</p>
+    <p class="muted" style="margin-top:16px; font-size:13px;">Didn't work? Here's the link again:</p>
+    <a class="btn secondary" id="fallbackOpenBtn" href="#" target="_blank" rel="noopener">Open Google review page</a>
+  </section>
+
+  <!-- STATE: feedback form -->
+  <section id="state-feedback" class="card hidden">
+    <h2>Sorry it wasn't great</h2>
+    <p class="muted" style="margin:-4px 0 14px;">This goes straight to the owner — not to Google. We'll take it seriously.</p>
+    <label for="fbText">What happened?</label>
+    <textarea id="fbText" rows="5" placeholder="Tell us what went wrong…"></textarea>
+    <label for="fbName">Name (optional)</label>
+    <input type="text" id="fbName" autocomplete="off">
+    <label for="fbPhone">Phone (optional)</label>
+    <input type="tel" id="fbPhone" autocomplete="off">
+    <button class="btn" id="fbSubmitBtn" style="margin-top:18px;" disabled>Send feedback</button>
+  </section>
+
+  <section id="state-feedback-done" class="card hidden center">
+    <div class="success-icon">&#10003;</div>
+    <h2>Thanks for letting us know</h2>
+    <p class="muted">We'll look into it.</p>
+  </section>
+
+</div>
+
+<footer>
+  Powered by <a href="/" target="_blank" rel="noopener">Tapstar</a>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script id="page-config" type="application/json">{{ page_config_json|safe }}</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var CONFIG = JSON.parse(document.getElementById('page-config').textContent);
+
+  var state = {
+    rating: 0,
+    categories: [],
+    items: [],
+    language: CONFIG.defaultLanguage || 'random',
+    requestId: null,
+    sessionToken: null,
+    variants: [],
+    selectedVariantId: null,
+    finalText: '',
+    openUrl: '',
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var panels = [
+    'state-rating', 'state-categories', 'state-items', 'state-language',
+    'state-generating', 'state-variants', 'state-submit-confirm', 'state-submitted',
+    'state-feedback', 'state-feedback-done'
+  ];
+  var stepsByState = {
+    'state-rating': 0,
+    'state-categories': 1,
+    'state-items': 1,
+    'state-language': 2,
+    'state-generating': 2,
+    'state-variants': 3,
+    'state-submit-confirm': 3,
+    'state-submitted': 3,
+    'state-feedback': 1,
+    'state-feedback-done': 3,
+  };
+
+  function show(id) {
+    panels.forEach(function (p) {
+      var el = $(p);
+      if (el) el.classList.toggle('hidden', p !== id);
+    });
+    updateProgress(stepsByState[id] || 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateProgress(step) {
+    var dots = document.querySelectorAll('#progress .dot');
+    dots.forEach(function (d, i) {
+      d.classList.remove('on', 'done');
+      if (i < step) d.classList.add('done');
+      else if (i === step) d.classList.add('on');
+    });
+  }
+
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  function getCookie(name) {
+    var parts = document.cookie.split('; ');
+    for (var i = 0; i < parts.length; i++) {
+      var kv = parts[i].split('=');
+      if (kv[0] === name) return decodeURIComponent(kv[1]);
+    }
+    return '';
+  }
+
+  function apiPost(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify(body),
+    }).then(function (res) { return res.json(); });
+  }
+
+  // === Rating ===
+  var starBtns = document.querySelectorAll('#starPicker .star-btn');
+  var HINTS = ['', 'Not great', 'Could be better', 'Okay', 'Good', 'Amazing!'];
+  starBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var r = parseInt(btn.dataset.rating, 10);
+      state.rating = r;
+      paintStars(r);
+      $('ratingHint').textContent = HINTS[r];
+      setTimeout(function () {
+        if (r <= CONFIG.negativeThreshold) {
+          show('state-feedback');
+          updateFbButton();
+        } else {
+          renderCategories();
+          show('state-categories');
+        }
+      }, 280);
+    });
+  });
+
+  function paintStars(rating) {
+    starBtns.forEach(function (b) {
+      var v = parseInt(b.dataset.rating, 10);
+      var was = b.classList.contains('filled');
+      var now = v <= rating;
+      b.classList.toggle('filled', now);
+      if (now && !was) {
+        b.classList.remove('pop');
+        void b.offsetWidth;
+        b.classList.add('pop');
+      }
+    });
+  }
+
+  // === Categories ===
+  function renderCategories() {
+    var wrap = $('categoryChips');
+    wrap.innerHTML = '';
+    if (!CONFIG.categories || CONFIG.categories.length === 0) {
+      $('toItemsBtn').disabled = false;
+      $('toItemsBtn').click();
+      return;
+    }
+    CONFIG.categories.forEach(function (cat) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = cat.label;
+      chip.addEventListener('click', function () {
+        chip.classList.toggle('selected');
+        var idx = state.categories.indexOf(cat.key);
+        if (chip.classList.contains('selected')) {
+          if (idx === -1) state.categories.push(cat.key);
+        } else {
+          if (idx !== -1) state.categories.splice(idx, 1);
+        }
+        $('toItemsBtn').disabled = state.categories.length === 0;
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  $('toItemsBtn').addEventListener('click', function () {
+    if (state.categories.length === 0 && CONFIG.categories.length > 0) return;
+    if (CONFIG.menuItems && CONFIG.menuItems.length > 0) {
+      renderItems();
+      show('state-items');
+    } else if (CONFIG.allowLanguageChange) {
+      renderLanguages();
+      show('state-language');
+    } else {
+      startGeneration();
+    }
+  });
+
+  // === Items ===
+  function renderItems() {
+    var wrap = $('itemChips');
+    wrap.innerHTML = '';
+    CONFIG.menuItems.forEach(function (name) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = name;
+      chip.addEventListener('click', function () {
+        chip.classList.toggle('selected');
+        var idx = state.items.indexOf(name);
+        if (chip.classList.contains('selected')) {
+          if (idx === -1) state.items.push(name);
+        } else {
+          if (idx !== -1) state.items.splice(idx, 1);
+        }
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  $('toLanguageBtn').addEventListener('click', function () {
+    if (CONFIG.allowLanguageChange) {
+      renderLanguages();
+      show('state-language');
+    } else {
+      startGeneration();
+    }
+  });
+
+  // === Language ===
+  function renderLanguages() {
+    var wrap = $('languageChips');
+    wrap.innerHTML = '';
+    (CONFIG.languageOptions || []).forEach(function (opt) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      if (opt.code === state.language) chip.classList.add('selected');
+      chip.textContent = opt.label;
+      chip.addEventListener('click', function () {
+        state.language = opt.code;
+        wrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('selected'); });
+        chip.classList.add('selected');
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  $('generateBtn').addEventListener('click', startGeneration);
+
+  // === Generation ===
+  function startGeneration() {
+    show('state-generating');
+    var steps = ['g1', 'g2', 'g3'];
+    var active = 0;
+    var stepTimer = setInterval(function () {
+      steps.forEach(function (id) { $(id).classList.remove('active'); });
+      active = (active + 1) % steps.length;
+      $(steps[active]).classList.add('active');
+    }, 900);
+
+    apiPost(CONFIG.apiUrls.generate, {
+      token: CONFIG.token,
+      star_rating: state.rating,
+      categories: state.categories,
+      items: state.items,
+      language: state.language,
+    }).then(function (res) {
+      clearInterval(stepTimer);
+      if (!res.success) {
+        toast(res.error || 'Could not generate review.');
+        show('state-language');
+        return;
+      }
+      state.requestId = res.data.request_id;
+      state.sessionToken = res.data.session_token;
+      state.variants = res.data.variants || [];
+      renderVariants();
+      show('state-variants');
+    }).catch(function () {
+      clearInterval(stepTimer);
+      toast('Network error. Please try again.');
+      show('state-language');
+    });
+  }
+
+  function renderVariants() {
+    var list = $('variantList');
+    list.innerHTML = '';
+    state.variants.forEach(function (v, idx) {
+      var card = document.createElement('div');
+      card.className = 'variant-card';
+      card.dataset.id = v.id;
+      card.innerHTML =
+        '<div class="variant-tags">' +
+          '<span class="tag">' + escapeHtml(v.language) + '</span>' +
+          '<span class="tag tone">' + escapeHtml(v.tone) + '</span>' +
+        '</div>' +
+        '<div class="variant-text">' + escapeHtml(v.text) + '</div>';
+      card.addEventListener('click', function () { selectVariant(v); });
+      list.appendChild(card);
+      if (idx === 0) selectVariant(v, true);
+    });
+  }
+
+  function selectVariant(v, silent) {
+    state.selectedVariantId = v.id;
+    document.querySelectorAll('.variant-card').forEach(function (el) {
+      el.classList.toggle('selected', parseInt(el.dataset.id, 10) === v.id);
+    });
+    $('finalText').value = v.text;
+    if (!silent) {
+      var ta = $('finalText');
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }
+
+  $('regenerateBtn').addEventListener('click', startGeneration);
+
+  // === Submit ===
+  $('submitToGoogleBtn').addEventListener('click', function () {
+    if (!state.selectedVariantId) { toast('Pick a variant first'); return; }
+    var finalText = $('finalText').value.trim();
+    if (!finalText) { toast('Review text is empty'); return; }
+    state.finalText = finalText;
+
+    copyToClipboard(finalText);
+
+    apiPost(CONFIG.apiUrls.submit, {
+      variant_id: state.selectedVariantId,
+      session_token: state.sessionToken,
+      text: finalText,
+    }).then(function (res) {
+      var url = (res.success && (res.data.google_review_url)) || CONFIG.googleReviewUrl;
+      state.openUrl = url;
+      $('reviewPreview').textContent = finalText;
+      $('fallbackOpenBtn').setAttribute('href', url || '#');
+      show('state-submit-confirm');
+    }).catch(function () {
+      state.openUrl = CONFIG.googleReviewUrl || '';
+      $('reviewPreview').textContent = finalText;
+      $('fallbackOpenBtn').setAttribute('href', state.openUrl || '#');
+      show('state-submit-confirm');
+    });
+  });
+
+  $('openGoogleBtn').addEventListener('click', function () {
+    copyToClipboard(state.finalText);
+    if (state.openUrl) {
+      window.open(state.openUrl, '_blank', 'noopener');
+    }
+    show('state-submitted');
+  });
+
+  $('copyAgainBtn').addEventListener('click', function () {
+    copyToClipboard(state.finalText);
+    toast('Copied again');
+  });
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // === Feedback ===
+  $('fbText').addEventListener('input', updateFbButton);
+  function updateFbButton() {
+    $('fbSubmitBtn').disabled = $('fbText').value.trim().length < 3;
+  }
+
+  $('fbSubmitBtn').addEventListener('click', function () {
+    var btn = $('fbSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    apiPost(CONFIG.apiUrls.feedback, {
+      token: CONFIG.token,
+      star_rating: state.rating,
+      feedback_text: $('fbText').value.trim(),
+      customer_name: $('fbName').value.trim(),
+      customer_phone: $('fbPhone').value.trim(),
+    }).then(function (res) {
+      if (!res.success) {
+        btn.disabled = false;
+        btn.textContent = 'Send feedback';
+        toast(res.error || 'Could not send feedback.');
+        return;
+      }
+      show('state-feedback-done');
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Send feedback';
+      toast('Network error.');
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>

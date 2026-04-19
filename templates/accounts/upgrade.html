@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade — Tapstar{% endblock %}
+
+{% block extra_head %}
+<style>
+  .plans { display: grid; gap: 16px; grid-template-columns: 1fr; margin-top: 8px; }
+  @media (min-width: 760px) { .plans { grid-template-columns: repeat(3, 1fr); } }
+  .plan {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .plan.highlight {
+    border-color: var(--brand);
+    box-shadow: 0 4px 20px rgba(31,111,235,0.12);
+    position: relative;
+  }
+  .plan .badge {
+    position: absolute;
+    top: -12px;
+    right: 16px;
+    background: var(--brand);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .plan h2 { margin: 0 0 4px 0; }
+  .plan .tagline { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .plan .price { font-size: 32px; font-weight: 800; margin-bottom: 2px; }
+  .plan .price .per { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .plan ul { padding-left: 18px; margin: 16px 0; color: var(--ink); font-size: 14px; line-height: 1.7; }
+  .plan ul.excluded { color: #9ca3af; text-decoration: line-through; }
+  .plan form { margin-top: auto; }
+  .plan button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--brand);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .plan button.secondary {
+    background: var(--surface);
+    color: var(--brand);
+    border: 1px solid var(--brand);
+  }
+  .plan button.current { background: #e5e7eb; color: var(--muted); cursor: default; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h1>Upgrade your plan</h1>
+  <p class="muted">INR pricing. Pay via UPI, cards, or net banking — powered by Easebuzz.</p>
+
+  <div class="plans">
+    {% for plan in plans %}
+      <div class="plan {% if plan.highlighted %}highlight{% endif %}">
+        {% if plan.highlighted %}<span class="badge">Most popular</span>{% endif %}
+        <h2>{{ plan.name }}</h2>
+        <p class="tagline">{{ plan.tagline }}</p>
+        <div class="price">
+          {% if plan.price_paise %}
+            Rs.{{ plan.price_rupees }}<span class="per"> / month</span>
+          {% else %}
+            Free<span class="per"></span>
+          {% endif %}
+        </div>
+
+        <ul>
+          {% for f in plan.features %}<li>{{ f }}</li>{% endfor %}
+        </ul>
+        {% if plan.not_included %}
+          <ul class="excluded">
+            {% for f in plan.not_included %}<li>{{ f }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+
+        <form method="post" action="{% url 'subscribe' plan=plan.code %}">
+          {% csrf_token %}
+          {% if plan.code == current_plan %}
+            <button type="button" class="current" disabled>Your current plan</button>
+          {% elif plan.code == 'starter' %}
+            <button type="submit" class="secondary">Switch to Starter</button>
+          {% else %}
+            <button type="submit">Upgrade to {{ plan.name }}</button>
+          {% endif %}
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="muted" style="margin-top: 24px; font-size: 13px;">
+    Payments are monthly. Cancel any time — the plan runs till the end of your paid cycle.
+  </p>
+{% endblock %}

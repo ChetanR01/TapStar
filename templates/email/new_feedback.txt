@@ -1,0 +1,18 @@
+Hi,
+
+You have new private feedback for {{ business.name }} ({{ fb.location.name }}).
+
+Rating: {{ fb.star_rating }}/5
+Received: {{ fb.created_at|date:"d M Y, h:i a" }}
+{% if fb.customer_name %}From: {{ fb.customer_name }}{% endif %}
+{% if fb.customer_phone %}Phone: {{ fb.customer_phone }}{% endif %}
+
+What they said:
+"{{ fb.feedback_text }}"
+
+Reply to them directly if they left a phone number — otherwise, use it to fix the problem.
+
+Open your inbox:
+{{ inbox_url }}
+
+— Tapstar

@@ -1,0 +1,14 @@
+Django>=5.1,<5.2
+djangorestframework>=3.17
+psycopg[binary]>=3.2
+dj-database-url>=3.0
+python-dotenv>=1.0
+qrcode>=8.0
+Pillow>=11.0
+anthropic>=0.40
+requests>=2.31
+celery>=5.4
+redis>=5.0
+django-htmx>=1.19
+whitenoise>=6.8
+reportlab>=4.2

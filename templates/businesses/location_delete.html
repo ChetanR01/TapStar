@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ location.name }} — Tapstar{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 520px; margin: 40px auto;">
+  <h1>Delete this location?</h1>
+  <p>You're about to delete <strong>{{ location.name }}</strong>.</p>
+  <p class="muted">
+    Its QR code will stop working immediately and historical reviews/feedback tied to it will be deleted too. This can't be undone.
+  </p>
+  <form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    <button type="submit" class="btn" style="background: var(--danger);">Yes, delete it</button>
+    <a href="{% url 'dashboard_home' %}" style="margin-left: 12px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

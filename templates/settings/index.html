@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — {{ business.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .section h2 { margin: 0 0 4px 0; font-size: 17px; }
+  .section .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .row { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .row.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+  .switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .switch:last-child { border-bottom: none; }
+  .switch .label-text { font-weight: 500; }
+  .switch .hint { color: var(--muted); font-size: 13px; display: block; margin-top: 2px; }
+  .switch input[type=checkbox] {
+    appearance: none;
+    width: 44px;
+    height: 24px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+  }
+  .switch input[type=checkbox]:checked { background: var(--brand); }
+  .switch input[type=checkbox]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: left 0.15s ease;
+  }
+  .switch input[type=checkbox]:checked::after { left: 22px; }
+
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-group label {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    background: var(--surface);
+  }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + .pill-text { }
+  .radio-group label:has(input:checked) { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .tag-input {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 48px;
+    align-items: center;
+    background: var(--surface);
+  }
+  .tag-input.disabled { opacity: 0.55; pointer-events: none; }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .tag-chip.danger { background: #fee2e2; color: #991b1b; }
+  .tag-chip.neutral { background: #f3f4f6; color: #374151; }
+  .tag-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    margin-left: 6px;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+  }
+  .tag-input input[type=text] {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 120px;
+    padding: 6px 4px;
+    font-size: 15px;
+    background: transparent;
+  }
+
+  .pro-overlay {
+    position: relative;
+  }
+  .pro-overlay::after {
+    content: "Growth plan required";
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .pro-overlay .section-inner { opacity: 0.55; pointer-events: none; }
+
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(247,248,251,1) 60%, rgba(247,248,251,0));
+    padding: 20px 0 10px 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .save-bar button {
+    padding: 12px 24px;
+    border: none;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .preview {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 16px;
+    border-radius: 10px;
+    color: #1e3a8a;
+    font-size: 15px;
+    line-height: 1.55;
+    font-style: italic;
+    white-space: pre-wrap;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+<p class="muted">How {{ business.name }}'s AI reviews sound.</p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  <!-- Language & tone -->
+  <div class="section">
+    <h2>Language &amp; tone</h2>
+    <p class="sub">The default style for AI-generated reviews. Customers can override if you allow it below.</p>
+    <div class="row cols-2">
+      <div>
+        <label>Language mode</label>
+        <select name="language_mode">
+          {% for code, label in language_options %}
+            <option value="{{ code }}" {% if code == settings_obj.language_mode %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if not pro_allowed %}
+          <small class="muted">Growth unlocks Minglish, Hindi, Marathi, and Random mix.</small>
+        {% endif %}
+      </div>
+      <div>
+        <label>Tone mode</label>
+        <select name="tone_mode">
+          {% for code, label in tone_options %}
+            <option value="{{ code }}" {% if code == settings_obj.tone_mode %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top: 14px;">
+      <label>Review length</label>
+      <select name="review_length">
+        {% for code, label in length_options %}
+          <option value="{{ code }}" {% if code == settings_obj.review_length %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Customer experience -->
+  <div class="section">
+    <h2>Customer experience</h2>
+    <p class="sub">Small choices that change how the QR page behaves for your customers.</p>
+    <div class="switch">
+      <div>
+        <span class="label-text">Let customer pick the language</span>
+        <span class="hint">Shows a language chip selector on the review page.</span>
+      </div>
+      <input type="checkbox" name="allow_customer_language_change" {% if settings_obj.allow_customer_language_change %}checked{% endif %}>
+    </div>
+    <div class="switch">
+      <div>
+        <span class="label-text">Mention business name</span>
+        <span class="hint">AI will include "{{ business.name }}" in at least 2 variants. Helps Google SEO.</span>
+      </div>
+      <input type="checkbox" name="mention_business_name" {% if settings_obj.mention_business_name %}checked{% endif %}>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div class="section">
+    <h2>Categories customers can pick</h2>
+    <p class="sub">Turn off any that don't apply to your business.</p>
+    {% for key, label, checked in category_rows %}
+      <div class="switch">
+        <span class="label-text">{{ label }}</span>
+        <input type="checkbox" name="category_{{ key }}" {% if checked %}checked{% endif %}>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Menu items -->
+  <div class="section">
+    <h2>Menu or service items</h2>
+    <p class="sub">Customers will be able to pick from these when writing their review. Adds authenticity — "the butter chicken was great" beats "the food was great".</p>
+    <div class="tag-input" data-tag-input="menu_items" data-placeholder="Type an item and press Enter">
+      {% for item in menu_items %}
+        <span class="tag-chip neutral">{{ item }}<button type="button" aria-label="Remove">&times;</button><input type="hidden" name="menu_items" value="{{ item }}"></span>
+      {% endfor %}
+      <input type="text" placeholder="Type an item and press Enter">
+    </div>
+  </div>
+
+  <!-- Negative filter -->
+  <div class="section {% if not pro_allowed %}pro-overlay{% endif %}">
+    <h2>Negative review filter</h2>
+    <p class="sub">Ratings at or below this threshold go to your private Inbox — they never reach Google.</p>
+    <div class="section-inner">
+      <div class="radio-group">
+        {% for n in threshold_options %}
+          <label>
+            <input type="radio" name="negative_filter_threshold" value="{{ n }}" {% if settings_obj.negative_filter_threshold == n %}checked{% endif %} {% if not pro_allowed %}disabled{% endif %}>
+            <span class="pill-text">≤ {{ n }} star{% if n != 1 %}s{% endif %}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom keywords -->
+  <div class="section {% if not pro_allowed %}pro-overlay{% endif %}">
+    <h2>Custom keywords</h2>
+    <p class="sub">Words to naturally include in reviews when they fit. Great for SEO ("hygienic", "family friendly").</p>
+    <div class="section-inner">
+      <div class="tag-input {% if not pro_allowed %}disabled{% endif %}" data-tag-input="custom_keywords" data-placeholder="e.g. hygienic">
+        {% for kw in custom_keywords %}
+          <span class="tag-chip">{{ kw }}<button type="button">&times;</button><input type="hidden" name="custom_keywords" value="{{ kw }}"></span>
+        {% endfor %}
+        <input type="text" placeholder="e.g. hygienic" {% if not pro_allowed %}disabled{% endif %}>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blocked phrases -->
+  <div class="section {% if not pro_allowed %}pro-overlay{% endif %}">
+    <h2>Blocked phrases</h2>
+    <p class="sub">Words the AI will never use. If it slips, we regenerate. Perfect for competitor names or clichés you hate.</p>
+    <div class="section-inner">
+      <div class="tag-input {% if not pro_allowed %}disabled{% endif %}" data-tag-input="blocked_phrases" data-placeholder="e.g. highly recommend">
+        {% for bp in blocked_phrases %}
+          <span class="tag-chip danger">{{ bp }}<button type="button">&times;</button><input type="hidden" name="blocked_phrases" value="{{ bp }}"></span>
+        {% endfor %}
+        <input type="text" placeholder="e.g. highly recommend" {% if not pro_allowed %}disabled{% endif %}>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="section">
+    <h2>Sample review preview</h2>
+    <p class="sub">What a review might look like with your current language setting. Regenerates every time you save.</p>
+    <div class="preview">"{{ preview }}"</div>
+  </div>
+
+  <div class="save-bar">
+    <button type="submit">Save settings</button>
+  </div>
+</form>
+
+<script>
+(function () {
+  function chipHTML(value, tone) {
+    var safe = String(value).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+    var cls = tone === 'danger' ? 'tag-chip danger' : (tone === 'neutral' ? 'tag-chip neutral' : 'tag-chip');
+    return '<span class="' + cls + '">' + safe + '<button type="button" aria-label="Remove">&times;</button><input type="hidden" name="__NAME__" value="' + safe + '"></span>';
+  }
+
+  document.querySelectorAll('[data-tag-input]').forEach(function (wrap) {
+    if (wrap.classList.contains('disabled')) return;
+    var name = wrap.dataset.tagInput;
+    var tone = name === 'blocked_phrases' ? 'danger' : (name === 'menu_items' ? 'neutral' : 'default');
+    var input = wrap.querySelector('input[type=text]');
+
+    function addChip(val) {
+      val = (val || '').trim();
+      if (!val) return;
+      // Dedupe against existing
+      var existing = Array.from(wrap.querySelectorAll('input[type=hidden]')).map(function (i) { return i.value; });
+      if (existing.indexOf(val) !== -1) { input.value = ''; return; }
+      var html = chipHTML(val, tone).replace('__NAME__', name);
+      input.insertAdjacentHTML('beforebegin', html);
+      input.value = '';
+    }
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addChip(input.value);
+      } else if (e.key === 'Backspace' && !input.value) {
+        var chips = wrap.querySelectorAll('.tag-chip');
+        if (chips.length) chips[chips.length - 1].remove();
+      }
+    });
+    input.addEventListener('blur', function () { addChip(input.value); });
+
+    wrap.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (btn) { btn.closest('.tag-chip').remove(); }
+      else if (e.target === wrap) { input.focus(); }
+    });
+  });
+})();
+</script>
+{% endblock %}

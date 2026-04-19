@@ -1,0 +1,41 @@
+<div class="fb-row {% if not fb.is_read %}unread{% endif %}" id="fb-{{ fb.id }}">
+  <div style="min-width: 96px;">
+    <div class="fb-stars" aria-label="{{ fb.star_rating }} stars">
+      {% for i in "12345"|make_list %}{% if forloop.counter <= fb.star_rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}
+    </div>
+    <div style="margin-top: 4px;">
+      <span class="fb-badge {% if fb.is_read %}read{% endif %}">{% if fb.is_read %}Read{% else %}Unread{% endif %}</span>
+    </div>
+  </div>
+
+  <div class="fb-main">
+    <div class="fb-text">{{ fb.feedback_text }}</div>
+    <div class="fb-meta">
+      {{ fb.created_at|date:"d M Y, h:i a" }}
+      &middot; {{ fb.location }}
+      {% if fb.customer_name %}&middot; {{ fb.customer_name }}{% endif %}
+      {% if fb.customer_phone %}&middot; <a href="tel:{{ fb.customer_phone }}">{{ fb.customer_phone }}</a>{% endif %}
+    </div>
+  </div>
+
+  <div class="fb-actions">
+    {% if fb.is_read %}
+      <button
+        hx-post="{% url 'feedback_mark_unread' fb.id %}"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        hx-target="#fb-{{ fb.id }}"
+        hx-swap="outerHTML"
+      >Mark unread</button>
+    {% else %}
+      <button class="primary"
+        hx-post="{% url 'feedback_mark_read' fb.id %}"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        hx-target="#fb-{{ fb.id }}"
+        hx-swap="outerHTML"
+      >Mark as read</button>
+    {% endif %}
+    {% if fb.customer_phone %}
+      <a href="tel:{{ fb.customer_phone }}" style="font-size:13px;text-align:center;padding:8px 12px;border-radius:8px;border:1px solid var(--border);">Call</a>
+    {% endif %}
+  </div>
+</div>
