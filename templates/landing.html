@@ -1,28 +1,1535 @@
-{% extends "base.html" %}
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="Tapstar — AI-powered Google reviews for Indian local businesses. Customers scan a QR, AI writes the review in Hindi, Marathi, Hinglish, or English. Bad reviews come to you privately.">
+<title>Tapstar — AI Google reviews for Indian businesses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #2563eb;
+    --brand-600: #1d4ed8;
+    --brand-700: #1e40af;
+    --brand-50: #eff6ff;
+    --brand-100: #dbeafe;
+    --accent: #7c3aed;
+    --accent-500: #8b5cf6;
+    --pink: #ec4899;
+    --ink: #0b1220;
+    --ink-2: #1f2937;
+    --ink-3: #374151;
+    --muted: #64748b;
+    --muted-2: #94a3b8;
+    --border: #e5e7eb;
+    --border-2: #eef2f7;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --success: #059669;
+    --star: #fbbf24;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --shadow-sm: 0 1px 2px rgba(11, 18, 32, .05), 0 1px 3px rgba(11, 18, 32, .06);
+    --shadow-md: 0 4px 6px -1px rgba(11, 18, 32, .07), 0 2px 4px -2px rgba(11, 18, 32, .05);
+    --shadow-lg: 0 10px 30px -5px rgba(11, 18, 32, .15), 0 4px 12px -4px rgba(11, 18, 32, .08);
+    --shadow-xl: 0 25px 50px -12px rgba(11, 18, 32, .25);
+    --shadow-glow: 0 10px 40px -5px rgba(37, 99, 235, .35);
+  }
 
-{% block title %}Tapstar — AI-powered Google reviews for your business{% endblock %}
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  html, body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  a { color: var(--brand); text-decoration: none; }
+  ::selection { background: var(--brand-100); color: var(--ink); }
 
-{% block content %}
-  <div class="card">
-    <h1>Get more Google reviews. In Hindi, Marathi, Hinglish — or any language.</h1>
-    <p class="muted">
-      Customers scan a QR at your counter. Tapstar's AI writes the review for them.
-      They tap Submit on Google. Bad reviews (1-2 stars) never reach Google — they come to you privately.
-    </p>
-    <p style="margin-top: 20px;">
-      <a class="btn" href="{% url 'signup' %}">Start free</a>
-      <a href="{% url 'login' %}" style="margin-left: 12px;">Already have an account?</a>
-    </p>
+  .wrap { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ============ NAV ============ */
+  .site-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 14px 0;
+    transition: background .25s ease, backdrop-filter .25s ease, box-shadow .25s ease, padding .25s ease;
+  }
+  .site-nav.scrolled {
+    padding: 10px 0;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    box-shadow: 0 1px 0 rgba(11, 18, 32, .06);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .brand-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+  .brand-mark {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, .35);
+  }
+  .nav-links {
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-links a {
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: var(--ink-3);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background .15s, color .15s;
+  }
+  .nav-links a:hover { background: rgba(0,0,0,.04); color: var(--ink); }
+  @media (min-width: 880px) { .nav-links { display: flex; } }
+
+  .nav-cta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .nav-cta a {
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all .15s;
+  }
+  .nav-cta .login { color: var(--ink-3); }
+  .nav-cta .login:hover { color: var(--ink); background: rgba(0,0,0,.04); }
+  .nav-cta .signup {
+    background: var(--ink);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(11, 18, 32, .2);
+  }
+  .nav-cta .signup:hover { background: var(--ink-2); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(11, 18, 32, .28); }
+
+  /* ============ HERO ============ */
+  .hero {
+    position: relative;
+    min-height: 92vh;
+    padding: 140px 0 80px;
+    overflow: hidden;
+    background:
+      radial-gradient(900px 500px at 12% 8%, rgba(37, 99, 235, .16), transparent 60%),
+      radial-gradient(800px 500px at 88% 20%, rgba(124, 58, 237, .14), transparent 60%),
+      radial-gradient(700px 400px at 50% 95%, rgba(236, 72, 153, .08), transparent 60%),
+      linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(37, 99, 235, .04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, .04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(1200px 600px at 50% 20%, #000 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(1200px 600px at 50% 20%, #000 30%, transparent 80%);
+    pointer-events: none;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: .55;
+    pointer-events: none;
+    animation: float 14s ease-in-out infinite;
+  }
+  .blob.b1 { width: 340px; height: 340px; background: radial-gradient(circle, var(--brand), transparent 70%); top: -80px; left: -100px; }
+  .blob.b2 { width: 280px; height: 280px; background: radial-gradient(circle, var(--accent), transparent 70%); top: 200px; right: -80px; animation-delay: -4s; }
+  .blob.b3 { width: 240px; height: 240px; background: radial-gradient(circle, var(--pink), transparent 70%); bottom: -80px; left: 30%; animation-delay: -8s; opacity: .35; }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(30px, -20px) scale(1.06); }
+    66%      { transform: translate(-20px, 25px) scale(.96); }
+  }
+
+  .hero-inner {
+    position: relative;
+    display: grid;
+    gap: 48px;
+    grid-template-columns: 1fr;
+    align-items: center;
+  }
+  @media (min-width: 980px) { .hero-inner { grid-template-columns: 1.1fr 1fr; gap: 64px; } }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 8px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    animation: fadeUp .7s ease both;
+  }
+  .hero-badge .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+  }
+  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; display: inline-block; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: .6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+
+  .hero h1 {
+    font-size: clamp(36px, 5.5vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    margin: 0 0 20px;
+    font-weight: 800;
+    color: var(--ink);
+    animation: fadeUp .8s ease .1s both;
+  }
+  .hero h1 .accent {
+    background: linear-gradient(135deg, var(--brand), var(--accent), var(--pink));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    white-space: nowrap;
+  }
+  .hero h1 .rotating {
+    position: relative;
+    display: inline-block;
+    min-width: 4.5ch;
+  }
+  .hero h1 .rotating span {
+    position: absolute;
+    left: 0; top: 0;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    opacity: 0;
+    animation: rotateWords 12s linear infinite;
+  }
+  .hero h1 .rotating span:nth-child(1) { animation-delay: 0s; }
+  .hero h1 .rotating span:nth-child(2) { animation-delay: 3s; }
+  .hero h1 .rotating span:nth-child(3) { animation-delay: 6s; }
+  .hero h1 .rotating span:nth-child(4) { animation-delay: 9s; }
+  @keyframes rotateWords {
+    0%, 20% { opacity: 1; transform: translateY(0); }
+    25%, 95% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 0; }
+  }
+
+  .hero p.lede {
+    font-size: clamp(16px, 1.5vw, 19px);
+    color: var(--ink-3);
+    margin: 0 0 32px;
+    max-width: 560px;
+    animation: fadeUp .8s ease .2s both;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    animation: fadeUp .8s ease .3s both;
+  }
+  .btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.005em;
+    transition: all .2s ease;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(11, 18, 32, .22);
+  }
+  .btn-primary:hover { background: var(--ink-2); color: #fff; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(11, 18, 32, .3); }
+  .btn-primary .arrow { transition: transform .2s; }
+  .btn-primary:hover .arrow { transform: translateX(4px); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--ink-3); background: var(--surface-2); transform: translateY(-2px); }
+
+  .hero-trust {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 13px;
+    animation: fadeUp .8s ease .4s both;
+  }
+  .hero-trust .checks {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .hero-trust .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hero-trust .check::before {
+    content: "✓";
+    color: var(--success);
+    font-weight: 700;
+  }
+
+  /* Phone mockup */
+  .phone-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    animation: fadeUp .9s ease .35s both;
+  }
+  .phone {
+    position: relative;
+    width: 300px;
+    height: 620px;
+    border-radius: 44px;
+    background: #0b1220;
+    padding: 12px;
+    box-shadow: var(--shadow-xl), 0 50px 100px -20px rgba(37, 99, 235, .3);
+    transition: transform .4s ease;
+  }
+  .phone:hover { transform: translateY(-6px) rotate(-1deg); }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 22px; left: 50%;
+    transform: translateX(-50%);
+    width: 92px; height: 22px;
+    background: #0b1220;
+    border-radius: 0 0 14px 14px;
+    z-index: 10;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #f8fafc, #eef2f7);
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    padding: 40px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .phone-hero {
+    text-align: center;
+    padding: 14px 8px;
+  }
+  .phone-hero .logo-chip {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    font-weight: 800;
+    font-size: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, .3);
+  }
+  .phone-hero h4 { margin: 0 0 2px; font-size: 14px; font-weight: 700; letter-spacing: -0.015em; }
+  .phone-hero p { margin: 0; font-size: 11px; color: var(--muted); }
+
+  .phone-card {
+    background: #fff;
+    border: 1px solid var(--border-2);
+    border-radius: 14px;
+    padding: 12px 14px;
+    animation: slideIn .6s ease both;
+    box-shadow: 0 1px 3px rgba(11, 18, 32, .04);
+  }
+  .phone-card.delay1 { animation-delay: .4s; }
+  .phone-card.delay2 { animation-delay: .7s; }
+  .phone-card.delay3 { animation-delay: 1s; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .phone-card .q { font-size: 12px; font-weight: 600; margin-bottom: 8px; text-align: center; }
+  .phone-stars {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    font-size: 20px;
+    color: var(--star);
+  }
+  .phone-stars .on { animation: starPop .45s cubic-bezier(.4,.8,.2,1.4) both; }
+  .phone-stars .on:nth-child(1) { animation-delay: 1.3s; }
+  .phone-stars .on:nth-child(2) { animation-delay: 1.45s; }
+  .phone-stars .on:nth-child(3) { animation-delay: 1.6s; }
+  .phone-stars .on:nth-child(4) { animation-delay: 1.75s; }
+  .phone-stars .on:nth-child(5) { animation-delay: 1.9s; }
+  @keyframes starPop {
+    0% { transform: scale(.4); opacity: 0; color: #e5e7eb; }
+    60% { transform: scale(1.4); color: var(--star); }
+    100% { transform: scale(1); color: var(--star); opacity: 1; }
+  }
+
+  .phone-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .phone-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .phone-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .phone-variant {
+    background: linear-gradient(135deg, var(--brand-50), #fff);
+    border-left: 3px solid var(--brand);
+    padding: 9px 11px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .phone-variant .tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    background: var(--brand);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    letter-spacing: .04em;
+  }
+
+  .phone-submit {
+    background: var(--success);
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-top: auto;
+  }
+
+  /* Floating QR card around the phone */
+  .float-card {
+    position: absolute;
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: floatCard 4s ease-in-out infinite;
+  }
+  .float-card.top { top: 40px; left: -20px; }
+  .float-card.bot { bottom: 80px; right: -30px; animation-delay: -2s; }
+  @keyframes floatCard {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .float-card .qr-mini {
+    width: 34px; height: 34px;
+    background:
+      repeating-conic-gradient(var(--ink) 0 25%, #fff 0 50%) 0 0/5px 5px;
+    border-radius: 4px;
+  }
+  .float-card .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  /* ============ STATS STRIP ============ */
+  .stats-strip {
+    background: var(--ink);
+    padding: 48px 0;
+    color: #fff;
+  }
+  .stats-grid {
+    display: grid;
+    gap: 32px;
+    grid-template-columns: repeat(2, 1fr);
+    text-align: center;
+  }
+  @media (min-width: 720px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+  .stat-item .num {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff, #cbd5e1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-item .label {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  /* ============ SHARED SECTION ============ */
+  section.content {
+    padding: 96px 0;
+    position: relative;
+  }
+  section.content.tint { background: var(--surface-2); }
+
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--brand-50);
+    color: var(--brand-700);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .section-head {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 56px;
+  }
+  .section-head h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0 0 14px;
+    font-weight: 800;
+  }
+  .section-head p {
+    font-size: 17px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* ============ HOW IT WORKS ============ */
+  .steps {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1000px) { .steps { grid-template-columns: repeat(5, 1fr); gap: 16px; } }
+  .step {
+    position: relative;
+    padding: 28px 22px 22px;
+    background: #fff;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform .25s, box-shadow .25s;
+  }
+  .step:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .step .num {
+    position: absolute;
+    top: -16px; left: 22px;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, .35);
+  }
+  .step .icon {
+    width: 36px; height: 36px;
+    color: var(--brand);
+    margin-bottom: 10px;
+  }
+  .step .icon svg { width: 100%; height: 100%; }
+  .step h3 { font-size: 16px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.015em; }
+  .step p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.55; }
+
+  /* ============ FEATURES ============ */
+  .features-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 720px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .features-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .feature-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    overflow: hidden;
+    transition: all .3s ease;
+  }
+  .feature-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--brand-50), transparent 50%);
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+  }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--brand-100); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-card .icon-box {
+    position: relative;
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, .28);
+  }
+  .feature-card .icon-box svg { width: 22px; height: 22px; }
+  .feature-card h3 {
+    position: relative;
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .feature-card p {
+    position: relative;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .feature-card .lang-row {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .feature-card .lang-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--brand-50);
+    color: var(--brand-700);
+    font-weight: 600;
+  }
+
+  /* ============ PRICING ============ */
+  .price-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  @media (min-width: 860px) { .price-grid { grid-template-columns: repeat(3, 1fr); align-items: stretch; } }
+
+  .price-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    transition: transform .25s, box-shadow .25s;
+  }
+  .price-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .price-card.popular {
+    border: 2px solid transparent;
+    background:
+      linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(135deg, var(--brand), var(--accent)) border-box;
+    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, .2);
+    transform: scale(1.02);
+  }
+  .price-card.popular:hover { transform: scale(1.02) translateY(-4px); }
+  .price-card .tag {
+    position: absolute;
+    top: -12px; left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, .3);
+  }
+  .price-card .tier-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .price-card .tier-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    min-height: 40px;
+  }
+  .price-card .price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .price-card .price .amount {
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .price-card .price .currency {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+  .price-card .price .period { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .price-card .price-sub { font-size: 12px; color: var(--muted); margin-bottom: 22px; }
+
+  .price-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .price-card li {
+    font-size: 14px;
+    color: var(--ink-2);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+  .price-card li::before {
+    content: "";
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--brand-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") center/10px no-repeat;
+    margin-top: 2px;
+  }
+  .price-card li.muted { color: var(--muted); }
+  .price-card li.muted::before {
+    background: #f1f5f9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E") center/10px no-repeat;
+  }
+  .price-card .price-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all .2s;
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1.5px solid var(--border);
+  }
+  .price-card .price-cta:hover { border-color: var(--ink-3); background: #fff; }
+  .price-card.popular .price-cta {
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, .3);
+  }
+  .price-card.popular .price-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(37, 99, 235, .4); }
+
+  /* ============ FAQ ============ */
+  .faq-list {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .faq-item {
+    background: #fff;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .faq-item:hover { border-color: var(--border); }
+  .faq-item[open] { border-color: var(--brand); box-shadow: 0 4px 14px rgba(37, 99, 235, .08); }
+  .faq-item summary {
+    list-style: none;
+    padding: 18px 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after {
+    content: "+";
+    font-size: 24px;
+    color: var(--brand);
+    transition: transform .2s ease;
+    width: 20px;
+    text-align: center;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item .answer {
+    padding: 0 22px 20px;
+    font-size: 14px;
+    color: var(--ink-3);
+    line-height: 1.7;
+  }
+
+  /* ============ FINAL CTA ============ */
+  .cta-banner {
+    position: relative;
+    padding: 64px 32px;
+    border-radius: var(--radius-xl);
+    background:
+      radial-gradient(800px 400px at 30% 20%, rgba(124, 58, 237, .4), transparent 60%),
+      radial-gradient(600px 400px at 80% 100%, rgba(236, 72, 153, .3), transparent 60%),
+      linear-gradient(135deg, #0b1220, #1e293b);
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+  }
+  .cta-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(800px 400px at 50% 50%, #000, transparent 70%);
+    -webkit-mask-image: radial-gradient(800px 400px at 50% 50%, #000, transparent 70%);
+    pointer-events: none;
+  }
+  .cta-banner h2 {
+    position: relative;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.03em;
+    margin: 0 0 14px;
+    font-weight: 800;
+  }
+  .cta-banner p {
+    position: relative;
+    font-size: 17px;
+    color: #cbd5e1;
+    margin: 0 0 32px;
+    max-width: 600px;
+    margin-inline: auto;
+    margin-bottom: 32px;
+  }
+  .cta-banner .cta-row {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .cta-banner .btn-primary-light {
+    background: #fff;
+    color: var(--ink);
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all .2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cta-banner .btn-primary-light:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 255, 255, .2); }
+  .cta-banner .btn-ghost-light {
+    background: transparent;
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, .3);
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all .2s;
+  }
+  .cta-banner .btn-ghost-light:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .5); }
+
+  /* ============ FOOTER ============ */
+  footer.site-foot {
+    background: #ffffff;
+    border-top: 1px solid var(--border-2);
+    padding: 48px 0 28px;
+  }
+  .foot-cols {
+    display: grid;
+    gap: 32px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 700px) { .foot-cols { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+  .foot-brand p { color: var(--muted); font-size: 14px; margin: 12px 0 0; max-width: 320px; line-height: 1.6; }
+  .foot-col h5 { margin: 0 0 14px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
+  .foot-col a { display: block; color: var(--muted); font-size: 14px; padding: 4px 0; }
+  .foot-col a:hover { color: var(--ink); }
+  .foot-bottom {
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ============ SCROLL REVEAL ============ */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .7s ease, transform .7s ease;
+  }
+  [data-reveal].in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      transition-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======= NAV ======= -->
+<nav class="site-nav" id="siteNav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand-logo">
+      <span class="brand-mark">T</span>
+      <span>Tapstar</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="{% url 'login' %}" class="login">Login</a>
+      <a href="{% url 'signup' %}" class="signup">Start free →</a>
+    </div>
   </div>
+</nav>
 
-  <div class="card">
-    <h2>How it works</h2>
-    <ol>
-      <li>Register your business and link your Google Place ID.</li>
-      <li>Download your unique QR — print it or stick it at the counter.</li>
-      <li>Customer scans, picks rating + what they experienced.</li>
-      <li>AI generates 4 review variants in different Indian language styles.</li>
-      <li>Customer taps Submit. Done.</li>
-    </ol>
+<!-- ======= HERO ======= -->
+<section class="hero" id="top">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <div class="hero-badge">
+        <span class="pill"><span class="dot"></span> NEW</span>
+        68 business types &nbsp;·&nbsp; Devanagari support
+      </div>
+
+      <h1>
+        Get more Google reviews.
+        <br>
+        In <span class="accent">any language</span>
+        your customers speak.
+      </h1>
+
+      <p class="lede">
+        Customers scan a QR at your counter. Tapstar's AI writes the review for them
+        in Hindi, Marathi, Hinglish (Roman or देवनागरी), or English — so they just
+        tap <strong>Submit on Google</strong>. Bad reviews never get posted — they
+        come to you privately instead.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="{% url 'signup' %}" class="btn-primary">
+          Start free — 14 day trial
+          <span class="arrow">→</span>
+        </a>
+        <a href="#how" class="btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          See how it works
+        </a>
+      </div>
+
+      <div class="hero-trust">
+        <div class="checks">
+          <span class="check">No credit card</span>
+          <span class="check">Setup in 2 min</span>
+          <span class="check">Made in India 🇮🇳</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="float-card top">
+        <div class="qr-mini"></div>
+        <div>
+          <div style="font-weight:600;font-size:12px;">QR scanned</div>
+          <div style="font-size:11px;color:var(--muted);">just now</div>
+        </div>
+      </div>
+
+      <div class="float-card bot">
+        <span class="live-dot"></span>
+        <div>
+          <div style="font-weight:600;font-size:12px;">Posted on Google</div>
+          <div style="font-size:11px;color:var(--success);">★★★★★ 5.0</div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="phone-hero">
+            <div class="logo-chip">S</div>
+            <h4>Sharma Kirana</h4>
+            <p>Grocery · Pune</p>
+          </div>
+
+          <div class="phone-card">
+            <div class="q">How was your experience?</div>
+            <div class="phone-stars">
+              <span class="on">★</span>
+              <span class="on">★</span>
+              <span class="on">★</span>
+              <span class="on">★</span>
+              <span class="on">★</span>
+            </div>
+          </div>
+
+          <div class="phone-card delay1">
+            <div class="q" style="text-align:left;">What stood out?</div>
+            <div class="phone-chips">
+              <span class="phone-chip on">Fresh stock</span>
+              <span class="phone-chip on">Prices</span>
+              <span class="phone-chip">Delivery</span>
+            </div>
+          </div>
+
+          <div class="phone-card delay2">
+            <div class="q" style="text-align:left;">Pick one you like</div>
+            <div class="phone-variant">
+              <span class="tag">HI + EN · देवनागरी</span>
+              Sharma uncle का shop हमेशा fresh stock रखता है। दाल, चावल सब market rate से fair। घर तक delivery भी smooth है।
+            </div>
+          </div>
+
+          <div class="phone-submit delay3">Submit on Google →</div>
+        </div>
+      </div>
+    </div>
   </div>
-{% endblock %}
+</section>
+
+<!-- ======= STATS ======= -->
+<section class="stats-strip">
+  <div class="wrap stats-grid">
+    <div class="stat-item" data-reveal>
+      <div class="num" data-counter="4200">0</div>
+      <div class="label">Reviews generated</div>
+    </div>
+    <div class="stat-item" data-reveal>
+      <div class="num" data-counter="320">0</div>
+      <div class="label">Indian businesses</div>
+    </div>
+    <div class="stat-item" data-reveal>
+      <div class="num" data-counter="6">0</div>
+      <div class="label">Languages supported</div>
+    </div>
+    <div class="stat-item" data-reveal>
+      <div class="num" data-counter="10" data-suffix="s">0</div>
+      <div class="label">Avg time to review</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= HOW IT WORKS ======= -->
+<section class="content" id="how">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">How it works</span>
+      <h2>From QR scan to Google review in under 10 seconds</h2>
+      <p>Five touches. No typing. No language barrier. Works on every phone.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step" data-reveal>
+        <div class="num">1</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM14 20h7M20 14v7"/></svg>
+        </div>
+        <h3>Customer scans your QR</h3>
+        <p>Print once, stick at the counter. Works on any phone camera.</p>
+      </div>
+
+      <div class="step" data-reveal>
+        <div class="num">2</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <h3>Picks star rating</h3>
+        <p>Bad ratings get quietly routed to your private inbox instead of Google.</p>
+      </div>
+
+      <div class="step" data-reveal>
+        <div class="num">3</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Taps what they liked</h3>
+        <p>Category chips and specific items are tuned to your business type.</p>
+      </div>
+
+      <div class="step" data-reveal>
+        <div class="num">4</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h3>AI writes 4 variants</h3>
+        <p>In Hindi, Marathi, English, or Hinglish — they pick the one that sounds like them.</p>
+      </div>
+
+      <div class="step" data-reveal>
+        <div class="num">5</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h3>Submits to Google</h3>
+        <p>Text auto-copies to clipboard, Google opens — one paste, one tap, done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= FEATURES ======= -->
+<section class="content tint" id="features">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">Features</span>
+      <h2>Built for how Indian customers actually write</h2>
+      <p>Every detail tuned for kirana stores, salons, clinics, hotels — whatever you run, we've got language and categories that match.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>6 languages &amp; scripts</h3>
+        <p>Including Hinglish written in Devanagari — for customers who read देवनागरी but sprinkle English in their speech.</p>
+        <div class="lang-row">
+          <span class="lang-chip">English</span>
+          <span class="lang-chip">Hinglish</span>
+          <span class="lang-chip">हिंदी</span>
+          <span class="lang-chip">मराठी</span>
+          <span class="lang-chip">Minglish</span>
+          <span class="lang-chip">Hinglish देवनागरी</span>
+        </div>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Bad reviews, filtered</h3>
+        <p>1- and 2-star customers get a private feedback form that comes straight to your inbox — not to Google.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-7m7 5h-7m7 5h-7M3 7h.01M3 12h.01M3 17h.01"/></svg>
+        </div>
+        <h3>68 business types</h3>
+        <p>Hardware store, clinic, salon, hotel, tiffin service — each gets its own vocabulary, category chips, and tone.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </div>
+        <h3>5 print templates</h3>
+        <p>A5 standee, A4 poster, table tent, counter card, sticker sheet. Download PDF and print — no design work.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <h3>Place ID, forgiven</h3>
+        <p>Paste a Google Maps share link, a full review URL, or just a raw Place ID — we'll figure it out.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3>Analytics that matter</h3>
+        <p>See which locations bring in the most reviews, what ratings you're clocking, and how fast reviews translate to Google.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= PRICING ======= -->
+<section class="content" id="pricing">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">Pricing</span>
+      <h2>Simple, honest pricing</h2>
+      <p>Start free — no credit card. Upgrade when you outgrow it.</p>
+    </div>
+
+    <div class="price-grid">
+      <!-- Starter -->
+      <div class="price-card" data-reveal>
+        <div class="tier-name">Starter</div>
+        <div class="tier-desc">Perfect to try it out on one counter.</div>
+        <div class="price">
+          <span class="currency">₹</span>
+          <span class="amount">0</span>
+          <span class="period">forever</span>
+        </div>
+        <div class="price-sub">No card · Cancel anytime</div>
+        <ul>
+          <li>1 location</li>
+          <li>Up to 50 reviews / month</li>
+          <li>English &amp; Hinglish (Roman)</li>
+          <li>QR PNG download</li>
+          <li>Private feedback inbox</li>
+          <li class="muted">Print templates</li>
+          <li class="muted">Custom keywords / blocked phrases</li>
+        </ul>
+        <a href="{% url 'signup' %}" class="price-cta">Start free →</a>
+      </div>
+
+      <!-- Growth (popular) -->
+      <div class="price-card popular" data-reveal>
+        <span class="tag">Most popular</span>
+        <div class="tier-name">Growth</div>
+        <div class="tier-desc">For single-shop businesses that want every tool.</div>
+        <div class="price">
+          <span class="currency">₹</span>
+          <span class="amount">499</span>
+          <span class="period">/ month</span>
+        </div>
+        <div class="price-sub">UPI / cards / net banking</div>
+        <ul>
+          <li>1 location</li>
+          <li><strong>Unlimited</strong> reviews</li>
+          <li>All 6 languages + Devanagari</li>
+          <li>All 5 print templates (PDF)</li>
+          <li>Custom keywords &amp; blocked phrases</li>
+          <li>WhatsApp share link</li>
+          <li>Analytics dashboard</li>
+        </ul>
+        <a href="{% url 'signup' %}" class="price-cta">Start 14-day trial →</a>
+      </div>
+
+      <!-- Business -->
+      <div class="price-card" data-reveal>
+        <div class="tier-name">Business</div>
+        <div class="tier-desc">For chains and owners with multiple outlets.</div>
+        <div class="price">
+          <span class="currency">₹</span>
+          <span class="amount">1,199</span>
+          <span class="period">/ month</span>
+        </div>
+        <div class="price-sub">UPI / cards / net banking</div>
+        <ul>
+          <li><strong>Up to 5 locations</strong></li>
+          <li>Unlimited reviews across locations</li>
+          <li>Everything in Growth</li>
+          <li>Per-location settings override</li>
+          <li>Per-location analytics</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="{% url 'signup' %}" class="price-cta">Start 14-day trial →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= FAQ ======= -->
+<section class="content tint" id="faq">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">FAQ</span>
+      <h2>Questions people ask before signing up</h2>
+      <p>Didn't find your answer? Email us at <a href="mailto:contact@prisms.in">contact@prisms.in</a>.</p>
+    </div>
+
+    <div class="faq-list">
+      <details class="faq-item" data-reveal>
+        <summary>Does Google know these reviews are AI-generated?</summary>
+        <div class="answer">
+          Reviews are written <em>for</em> customers, not by the AI on Google's side. The customer reads the suggestions, picks one, edits it if they want, and taps Submit themselves from their own phone. The review is their own post — we're just removing the friction of typing.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>What happens to 1- and 2-star ratings?</summary>
+        <div class="answer">
+          By default, customers who give 1 or 2 stars never see the Google submit path. They see a private feedback form instead, and you get the message in your inbox. You control the threshold — you can set it to 1, 2, or 3 stars.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>Will it work for my kind of shop?</summary>
+        <div class="answer">
+          Tapstar supports 68 Indian-market business types — restaurants, kirana stores, salons, clinics, hardware stores, hotels, tiffin services, tailors, petrol pumps, coaching classes and a lot more. Each type gets its own category chips and vocabulary so reviews talk about things that actually matter for that business.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>Do customers need to install an app?</summary>
+        <div class="answer">
+          No. They scan your QR with their phone camera, and the review page opens in their browser. Takes about 10 seconds end-to-end.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>What languages do you support?</summary>
+        <div class="answer">
+          English, Hinglish (Roman script — "bahut accha tha"), Hinglish in Devanagari ("बहुत accha था"), Hindi (हिंदी), Marathi (मराठी), and Minglish (Marathi-English mix). The AI auto-picks based on your customer's choice, or you can lock it to one.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>How do I find my Google Place ID?</summary>
+        <div class="answer">
+          You don't have to. Open your business on Google Maps → tap <strong>Share</strong> → <strong>Copy link</strong>, then paste the whole URL into Tapstar. We resolve it to a Place ID automatically — even short <code>maps.app.goo.gl</code> links work.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>How does billing work?</summary>
+        <div class="answer">
+          Monthly plans via Easebuzz — pay with UPI, cards, or net banking. No auto-debit mandate. You pay each month explicitly; skip a month and your plan pauses. Start on the free Starter plan and upgrade whenever.
+        </div>
+      </details>
+
+      <details class="faq-item" data-reveal>
+        <summary>Can I edit the review before submitting?</summary>
+        <div class="answer">
+          Yes. The customer sees 4 AI-generated options, picks one, and there's a text box below where they can tweak it freely. Or they can hit "Generate 4 more" if none of the options feel right.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ======= FINAL CTA ======= -->
+<section class="content">
+  <div class="wrap">
+    <div class="cta-banner" data-reveal>
+      <h2>Ready to get genuine Google reviews?</h2>
+      <p>Setup takes 2 minutes. Your first QR is ready the moment you finish onboarding.</p>
+      <div class="cta-row">
+        <a href="{% url 'signup' %}" class="btn-primary-light">
+          Start free — 14 day trial
+          <span>→</span>
+        </a>
+        <a href="#features" class="btn-ghost-light">Explore features</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= FOOTER ======= -->
+<footer class="site-foot">
+  <div class="wrap foot-cols">
+    <div class="foot-brand">
+      <a href="#top" class="brand-logo">
+        <span class="brand-mark">T</span>
+        <span>Tapstar</span>
+      </a>
+      <p>AI-powered Google reviews for Indian local businesses. Made in India, built for Indian customers.</p>
+    </div>
+    <div class="foot-col">
+      <h5>Product</h5>
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="foot-col">
+      <h5>Company</h5>
+      <a href="mailto:contact@prisms.in">Contact</a>
+      <a href="{% url 'login' %}">Login</a>
+      <a href="{% url 'signup' %}">Sign up</a>
+    </div>
+    <div class="foot-col">
+      <h5>Support</h5>
+      <a href="mailto:contact@prisms.in">contact@prisms.in</a>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <div>© {% now "Y" %} Tapstar · A 1TechSpace product</div>
+    <div>All prices in ₹ INR</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // --- Sticky nav tint on scroll ---
+  var nav = document.getElementById('siteNav');
+  function onScroll() {
+    if (!nav) return;
+    nav.classList.toggle('scrolled', window.scrollY > 12);
+  }
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // --- Scroll reveal via IntersectionObserver ---
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('[data-reveal]').forEach(function (el) { obs.observe(el); });
+  } else {
+    document.querySelectorAll('[data-reveal]').forEach(function (el) { el.classList.add('in'); });
+  }
+
+  // --- Animated counters ---
+  function animateCounter(el) {
+    var target = parseInt(el.dataset.counter, 10) || 0;
+    var suffix = el.dataset.suffix || '';
+    var duration = 1400;
+    var start = performance.now();
+    function step(now) {
+      var p = Math.min(1, (now - start) / duration);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var value = Math.floor(target * eased);
+      el.textContent = value.toLocaleString('en-IN') + suffix;
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target.toLocaleString('en-IN') + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+  if ('IntersectionObserver' in window) {
+    var counterObs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          animateCounter(entry.target);
+          counterObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('[data-counter]').forEach(function (el) { counterObs.observe(el); });
+  } else {
+    document.querySelectorAll('[data-counter]').forEach(animateCounter);
+  }
+
+  // --- Close other FAQ items when one opens (accordion behaviour) ---
+  var faqs = document.querySelectorAll('.faq-item');
+  faqs.forEach(function (item) {
+    item.addEventListener('toggle', function () {
+      if (!item.open) return;
+      faqs.forEach(function (other) { if (other !== item) other.open = false; });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
