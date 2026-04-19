@@ -26,38 +26,40 @@ PLAN_DETAILS = [
         "code": User.PLAN_STARTER,
         "name": "Starter",
         "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_STARTER],
+        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_STARTER],
         "tagline": "Forever free",
         "features": [
-            "50 AI reviews / month",
+            "5 AI reviews / month",
             "1 location",
             "English + Hinglish",
             "PNG QR code",
+            "Private feedback inbox",
         ],
         "not_included": [
             "Negative review filter",
             "Analytics dashboard",
             "Custom keywords",
+            "Print templates (PDF)",
         ],
     },
     {
         "code": User.PLAN_GROWTH,
         "name": "Growth",
         "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_GROWTH],
-        "tagline": "1 month free trial",
+        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_GROWTH],
+        "tagline": "14-day free trial",
         "features": [
             "Unlimited AI reviews",
             "1 location",
-            "All 6 language modes",
+            "All 6 language modes + Devanagari",
             "Negative review filter",
             "Custom keywords + blocked phrases",
             "Analytics dashboard",
             "WhatsApp review links",
-            "PNG + SVG + standee PDF",
+            "All 5 print templates (PDF)",
         ],
         "not_included": [
             "Multi-location dashboard",
-            "API access",
-            "Custom branding",
         ],
         "highlighted": True,
     },
@@ -65,15 +67,15 @@ PLAN_DETAILS = [
         "code": User.PLAN_BUSINESS,
         "name": "Business",
         "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_BUSINESS],
-        "tagline": "1 month free trial",
+        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_BUSINESS],
+        "tagline": "Best value — billed yearly",
         "features": [
             "Everything in Growth",
             "Up to 5 locations",
             "Multi-location dashboard",
-            "SMS review links",
-            "Custom branding on review page",
-            "API access",
+            "Per-location settings & analytics",
             "Priority support",
+            "Save over monthly Growth pricing",
         ],
         "not_included": [],
     },
@@ -147,7 +149,9 @@ def subscribe(request, plan: str):
     return redirect(result.pay_url)
 
 
-def _activate_subscription(user: User, plan: str, days: int = 30):
+def _activate_subscription(user: User, plan: str, days: int | None = None):
+    if days is None:
+        days = settings.PLAN_BILLING_PERIOD_DAYS.get(plan, 30)
     now = timezone.now()
     base = user.subscription_active_until if (user.subscription_active_until and user.subscription_active_until > now) else now
     user.subscription_plan = plan

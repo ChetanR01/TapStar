@@ -247,16 +247,34 @@ PLAN_STARTER = "starter"
 PLAN_GROWTH = "growth"
 PLAN_BUSINESS = "business"
 
-# Prices in paise (1 INR = 100 paise). Razorpay expects amounts in paise.
+# Prices in paise (1 INR = 100 paise). Easebuzz expects rupees as a
+# decimal string but we store paise internally to keep integer math clean.
+#   Starter  — free forever
+#   Growth   — billed monthly
+#   Business — billed yearly (cheaper per-month than Growth by design)
 PLAN_PRICES_PAISE = {
     PLAN_STARTER: 0,
-    PLAN_GROWTH: 49900,
-    PLAN_BUSINESS: 119900,
+    PLAN_GROWTH: 5000,     # Rs.50 / month
+    PLAN_BUSINESS: 49900,  # Rs.499 / year
+}
+
+# How long a successful payment extends the subscription for each plan.
+PLAN_BILLING_PERIOD_DAYS = {
+    PLAN_STARTER: 0,       # free — not extended by payments
+    PLAN_GROWTH: 30,
+    PLAN_BUSINESS: 365,
+}
+
+# How to describe each plan's price in UI ("forever" / "/ month" / "/ year").
+PLAN_PERIOD_LABELS = {
+    PLAN_STARTER: "forever",
+    PLAN_GROWTH: "/ month",
+    PLAN_BUSINESS: "/ year",
 }
 
 # None = unlimited
 PLAN_REVIEW_LIMITS = {
-    PLAN_STARTER: 50,
+    PLAN_STARTER: 5,
     PLAN_GROWTH: None,
     PLAN_BUSINESS: None,
 }

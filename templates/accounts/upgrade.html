@@ -71,9 +71,9 @@
         <p class="tagline">{{ plan.tagline }}</p>
         <div class="price">
           {% if plan.price_paise %}
-            Rs.{{ plan.price_rupees }}<span class="per"> / month</span>
+            Rs.{{ plan.price_rupees }}<span class="per"> {{ plan.period }}</span>
           {% else %}
-            Free<span class="per"></span>
+            Free<span class="per"> {{ plan.period }}</span>
           {% endif %}
         </div>
 
