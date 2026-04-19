@@ -49,7 +49,7 @@ def _plan_language_options(user):
 
 
 def _build_sample_preview(settings_obj: BusinessSettings, business_name: str) -> str:
-    variants = build_fallback_variants(settings_obj.language_mode, business_name)
+    variants = build_fallback_variants(settings_obj.language_mode, business_name, settings_obj.review_length)
     return random.choice(variants)["text"] if variants else ""
 
 

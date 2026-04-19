@@ -40,6 +40,15 @@ LENGTH_DESCRIPTIONS = {
 }
 
 
+# Blunt length constraint the model can't gloss over. We embed this as its
+# own block near the rules so it's salient even if the model starts skimming.
+LENGTH_HARD_CONSTRAINT = {
+    "short":    "HARD LENGTH RULE: every variant MUST be exactly 1 or 2 sentences. Not 3, not 4.",
+    "medium":   "HARD LENGTH RULE: every variant MUST be exactly 3 or 4 sentences. Not 2, not 5.",
+    "detailed": "HARD LENGTH RULE: every variant MUST be exactly 5, 6, or 7 sentences. Not 3, not 4, not 8. Count your sentences before finalising each variant — if you wrote fewer than 5, add more specific detail (a dish, a staff interaction, the seating) until you reach 5-7.",
+}
+
+
 # Hard-banned phrases. Two categories:
 #
 # (1) Corporate hype — reviews that read like marketing. Bans force the model
@@ -161,6 +170,8 @@ TONE DEFINITIONS:
 FORBIDDEN PHRASES — do NOT use any of these in any variant:
 {forbidden_block}
 
+{length_hard_constraint}
+
 HOW REAL REVIEWS SOUND (follow this feel, not the exact words):
 {few_shot_block}
 
@@ -245,6 +256,7 @@ class PromptBuilder:
 
         length = self.settings.review_length
         length_description = LENGTH_DESCRIPTIONS.get(length, LENGTH_DESCRIPTIONS["medium"])
+        length_hard_constraint = LENGTH_HARD_CONSTRAINT.get(length, LENGTH_HARD_CONSTRAINT["medium"])
 
         vocabulary_hints, style_hints = prompt_hints_for(self.input.business.business_type)
         business_vocabulary_section = (
@@ -279,6 +291,7 @@ class PromptBuilder:
             tone_mode=self.input.tone_mode,
             length=length,
             length_description=length_description,
+            length_hard_constraint=length_hard_constraint,
             business_vocabulary_section=business_vocabulary_section,
             business_style_section=business_style_section,
             custom_keywords_instruction=custom_keywords_instruction,
@@ -346,7 +359,7 @@ def generate_variants(gen_input: GenerationInput, effective: EffectiveSettings) 
     """
     if not settings.ANTHROPIC_API_KEY:
         logger.warning("ANTHROPIC_API_KEY not set — serving fallback variants")
-        return build_fallback_variants(gen_input.language_mode, gen_input.business.name), True
+        return build_fallback_variants(gen_input.language_mode, gen_input.business.name, effective.review_length), True
 
     prompt = PromptBuilder(gen_input, effective).build()
     owner_blocked = list(effective.blocked_phrases or [])
@@ -374,7 +387,7 @@ def generate_variants(gen_input: GenerationInput, effective: EffectiveSettings) 
                 and not _has_forbidden_cliche(v["text"])
             ]
             if len(clean) < 4:
-                pads = build_fallback_variants(gen_input.language_mode, gen_input.business.name)
+                pads = build_fallback_variants(gen_input.language_mode, gen_input.business.name, effective.review_length)
                 for p in pads:
                     if len(clean) >= 4:
                         break
@@ -384,7 +397,7 @@ def generate_variants(gen_input: GenerationInput, effective: EffectiveSettings) 
             variants = clean[:4]
 
         while len(variants) < 4:
-            pads = build_fallback_variants(gen_input.language_mode, gen_input.business.name)
+            pads = build_fallback_variants(gen_input.language_mode, gen_input.business.name, effective.review_length)
             variants.append(pads[len(variants) % 4])
 
         for i, v in enumerate(variants, start=1):
@@ -394,4 +407,4 @@ def generate_variants(gen_input: GenerationInput, effective: EffectiveSettings) 
 
     except Exception as exc:
         logger.exception("AI generation failed, using fallback: %s", exc)
-        return build_fallback_variants(gen_input.language_mode, gen_input.business.name), True
+        return build_fallback_variants(gen_input.language_mode, gen_input.business.name, effective.review_length), True
