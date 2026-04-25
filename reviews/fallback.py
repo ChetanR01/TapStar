@@ -1,22 +1,25 @@
 """Pre-written fallback variants used when the Anthropic API is unavailable.
 
-Structure: each (language, tone) pair is a list of sentences ordered so the
-first N read well on their own. `build_fallback_variants` picks a different
-N depending on the owner's ``review_length`` setting:
+Constraints — these are the same rules the AI prompt enforces:
 
-  short    → 1 sentence
-  medium   → 3 sentences
-  detailed → 5-6 sentences (whatever is available)
+- Strictly POSITIVE. No "but", no caveats, no waits/delays/price complaints.
+- Strictly TRUTHFUL. No fabricated specifics: no day-of-week claims, no
+  "visited on Saturday", no invented staff names, no invented dishes /
+  products / services / treatments. Every sentence must be defensible
+  for any business type.
+- Strictly BUSINESS-AGNOSTIC. The same line should make sense for a gym,
+  a salon, a clinic, a hardware store, or a restaurant. No "khaana",
+  "menu", "order", "serve", "jevan" — pick neutral words like "what we
+  received", "the place", "staff", "experience".
 
-Every sentence must be cleanly positive — no "but" caveats, no mention of
-waits/delays/price complaints/backhanded framings. That's the whole point.
+Structure: each (language, tone) pair is a list of sentences ordered so
+the first N read well on their own. ``build_fallback_variants`` picks N
+based on the owner's review_length setting.
 """
 
 import random
 
 
-# Target sentence counts per length setting. "detailed" takes whatever is
-# available (we wrote 5-6 sentences for each entry) up to this cap.
 LENGTH_SENTENCE_COUNT = {
     "short": 1,
     "medium": 3,
@@ -25,161 +28,162 @@ LENGTH_SENTENCE_COUNT = {
 
 
 # Each entry is (tone, [sentence, sentence, ...]). Every sentence reads well
-# on its own so truncating to N is fine.
+# on its own so truncating to N is fine. Sentences avoid: weekday/date/time,
+# menu/food/order/serve, fabricated names, "but" caveats, complaints.
 FALLBACK_BY_LANGUAGE: dict[str, list[tuple[str, list[str]]]] = {
     "english": [
         ("casual", [
-            "Went here on a Saturday and enjoyed our visit.",
-            "The food came hot and fresh, exactly how we ordered it.",
-            "Staff answered our questions without rushing us at any point.",
-            "The place was clean and well-lit, nice seating for a family.",
-            "Pricing felt fair and billing was quick.",
-            "Will be back soon for sure.",
+            "Had a good experience here.",
+            "Staff was helpful and answered our questions properly.",
+            "The place was clean and well kept.",
+            "What we got was exactly what we were looking for.",
+            "Pricing felt fair for what is offered.",
+            "Will be back again.",
         ]),
         ("enthusiastic", [
             "Really liked this place.",
-            "Ordered two items and both came nicely plated.",
-            "Staff was friendly and chatty in a good way.",
-            "The ambience was warm and we didn't feel rushed.",
-            "Quality of what we received felt consistent with the price.",
-            "Already planning our next visit with the family.",
+            "Staff was friendly and easy to talk to.",
+            "Everything was handled smoothly from start to finish.",
+            "The place felt well looked after and comfortable.",
+            "Quality of what we received was consistent.",
+            "Already planning to visit again.",
         ]),
         ("formal", [
-            "A very good experience overall.",
-            "The staff were attentive and professional throughout.",
-            "Quality of what we received matched exactly what we hoped for.",
-            "Seating arrangement was comfortable and the place was well maintained.",
-            "Billing was transparent and handled quickly.",
-            "Would happily recommend to friends and family.",
+            "A good experience overall.",
+            "Staff were attentive and professional throughout.",
+            "Quality of the work was consistent with expectations.",
+            "The place was well maintained and easy to navigate.",
+            "Billing was straightforward and quick.",
+            "Would happily recommend to friends.",
         ]),
     ],
     "hinglish": [
         ("casual", [
-            "Taste accha tha, staff ne jaldi serve kiya.",
-            "Bhaiya ne menu recommend kiya aur wahi sahi tha.",
-            "Jagah clean thi aur seating bhi comfortable lagi.",
-            "Price bhi reasonable lagaa, paisa vasool.",
-            "Order exactly waisa hi mila jaisa bola tha.",
-            "Agli baar family ko bhi le aayenge.",
+            "Achha experience raha yahan.",
+            "Staff helpful tha aur sab kuch properly samjha diya.",
+            "Jagah clean thi aur properly maintained lagi.",
+            "Jo chahiye tha exactly wahi mila.",
+            "Rate bhi reasonable lagaa.",
+            "Wapas zaroor aayenge.",
         ]),
         ("enthusiastic", [
-            "Yahan regular customer hai hum.",
-            "Quality har baar consistent rehti hai.",
-            "Staff ka behaviour polite hai, baat achche se karte hain.",
-            "Jo bhi order kiya wo fresh aur garam mila.",
-            "Place bhi theek thaak maintained hai.",
-            "Sach me bahut mazaa aaya, zaroor wapas aayenge.",
+            "Yahan ka experience kaafi accha raha.",
+            "Staff polite hai aur properly attend karte hain.",
+            "Quality consistent rehti hai har baar.",
+            "Jagah achchi tarah maintained hai.",
+            "Jo expect kiya tha wo bhi mila.",
+            "Aage bhi aana banta hai.",
         ]),
         ("formal", [
             "Kaafi accha anubhav raha.",
             "Staff ne patience ke saath help ki aur professional tha.",
-            "Jo order kiya wahi exactly mila, quality bhi uchchit thi.",
-            "Seating comfortable thi aur jagah saaf suthri thi.",
-            "Billing bhi turant aur transparent thi.",
-            "Aage bhi aayenge, dosto ko bhi bolenge.",
+            "Quality expectation ke according thi.",
+            "Jagah saaf-suthri aur achhi tarah maintained thi.",
+            "Billing transparent thi aur quickly handle ki gayi.",
+            "Dosto ko bhi recommend karunga.",
         ]),
     ],
     "hinglish_devanagari": [
         ("casual", [
-            "Taste अच्छा था, staff ने जल्दी serve किया।",
-            "Menu recommendation भी helpful थी।",
-            "जगह clean थी और seating भी comfortable लगी।",
-            "Price reasonable लगा, value for money।",
-            "Order exactly वैसा ही मिला जैसा बोला था।",
-            "अगली बार family को भी ले आएंगे।",
+            "अच्छा experience रहा यहाँ।",
+            "Staff helpful था और सब कुछ properly समझा दिया।",
+            "जगह clean थी और maintained लगी।",
+            "जो चाहिए था exactly वही मिला।",
+            "Rate भी reasonable लगा।",
+            "वापस ज़रूर आएंगे।",
         ]),
         ("enthusiastic", [
-            "हम regular आते हैं यहाँ।",
-            "Quality हमेशा consistent रहती है।",
-            "Staff का behaviour polite है, बात अच्छे से करते हैं।",
-            "जो भी order किया वो fresh और गरम मिला।",
-            "Place भी properly maintained है।",
-            "सच में अच्छा लगा, ज़रूर वापस आएंगे।",
+            "यहाँ का experience अच्छा रहा।",
+            "Staff polite है और properly attend करते हैं।",
+            "Quality हर बार consistent रहती है।",
+            "जगह properly maintained है।",
+            "जो expect किया था वो भी मिला।",
+            "आगे भी आना बनता है।",
         ]),
         ("formal", [
             "अनुभव अच्छा रहा।",
             "Staff ने patience के साथ help की।",
-            "जो order किया वो exactly मिला और quality बढ़िया थी।",
-            "Seating comfortable थी और जगह साफ-सुथरी थी।",
-            "Billing भी transparent और जल्दी हो गया।",
-            "आगे भी आएंगे, दोस्तों को भी recommend करेंगे।",
+            "Quality expectation के according थी।",
+            "जगह साफ-सुथरी और maintained थी।",
+            "Billing भी transparent और जल्दी हो गई।",
+            "दोस्तों को भी recommend करूँगा।",
         ]),
     ],
     "minglish": [
         ("casual", [
-            "Jevan chan hota.",
-            "Staff ne sangitla te nit kela, kuthali ghai keli nahi.",
-            "Jagah swachchha hoti ani seating pan comfortable.",
-            "Chava mast hota ani velevar serve jhala.",
-            "Kimmat pan baryapaiki, vasta ka layak.",
-            "Parat yeu asa vatte aahe.",
+            "Anubhav changla hota.",
+            "Staff helpful hota ani sagle nit samjawla.",
+            "Jagah swachchha aani vyavasthit hoti.",
+            "Je havya hote te nit milala.",
+            "Kimmat pan baryapaiki vatli.",
+            "Parat yeu asa vatto.",
         ]),
         ("enthusiastic", [
-            "Aamhi regular customer aahot yacha.",
-            "Quality consistent aste neeam sari.",
-            "Staff pan changla aahe, bolayala mast.",
-            "Jevan fresh ani garam milat asla.",
-            "Ambience suddhya suddhya aani familyfriendly.",
-            "Nakki parat yenar, aaptyanna pan sangen.",
+            "Yethla anubhav khup chaan hota.",
+            "Staff polite aahe ani nit attend kartat.",
+            "Quality consistent aste prati vela.",
+            "Jagah vyavasthit maintained aahe.",
+            "Je expect kele te pan milala.",
+            "Pudhe pan yeil mhante.",
         ]),
         ("formal", [
-            "Anubhav baryapaiki hota.",
+            "Anubhav samadhanakarak hota.",
             "Staff vyavasthit hota aani vinamra hota.",
-            "Jo order kela to velevar aani exactly milala.",
-            "Jagah swachchha aani upchaarik hoti.",
-            "Bill pan paardarshak aani jaldi zhala.",
-            "Aaplya mitranna pan recommend karen.",
+            "Quality apekshepramane hoti.",
+            "Jagah swachchha aani nitanitki hoti.",
+            "Bill paardarshak aani lavkar zhala.",
+            "Mitranna pan recommend karen.",
         ]),
     ],
     "hindi": [
         ("casual", [
-            "शनिवार को गए थे, माहौल अच्छा लगा।",
-            "खाना गरम और fresh मिला।",
-            "स्टाफ ने बढ़िया तरीके से serve किया।",
-            "जगह साफ-सुथरी थी और बैठने की जगह भी ठीक थी।",
-            "रेट भी सही लगा, पैसा वसूल।",
-            "अगली बार परिवार को भी लाएंगे।",
+            "अनुभव अच्छा रहा।",
+            "स्टाफ helpful था और हर बात ठीक से समझा दी।",
+            "जगह साफ-सुथरी थी और व्यवस्थित लगी।",
+            "जो चाहिए था वही exactly मिला।",
+            "रेट भी सही लगा।",
+            "अगली बार ज़रूर आएंगे।",
         ]),
         ("enthusiastic", [
-            "बहुत अच्छी जगह है, हम अक्सर यहाँ आते हैं।",
-            "Quality में कभी कमी नहीं आती।",
-            "स्टाफ भी polite है और जल्दी मदद करता है।",
-            "हर बार fresh और गरम खाना मिलता है।",
-            "जगह की सजावट भी मन को भाती है।",
-            "ज़रूर फिर आएंगे और दोस्तों को भी बताएंगे।",
+            "यहाँ का अनुभव बहुत अच्छा रहा।",
+            "स्टाफ polite है और जल्दी मदद करता है।",
+            "Quality में consistency दिखती है।",
+            "जगह की देखभाल अच्छे से की गई है।",
+            "जो उम्मीद थी वही मिला।",
+            "आगे फिर आना बनता है।",
         ]),
         ("formal", [
             "संतोषजनक अनुभव रहा।",
             "व्यवस्था ठीक थी और staff का व्यवहार सभ्य था।",
-            "जो order किया वही exactly मिला।",
-            "बैठने की जगह comfortable और जगह साफ थी।",
-            "मूल्य भी उचित लगा और बिलिंग पारदर्शी थी।",
-            "मैं अपने मित्रों को भी इसकी सलाह दूंगा।",
+            "Quality अपेक्षा के अनुरूप थी।",
+            "जगह comfortable और साफ थी।",
+            "मूल्य उचित लगा और बिलिंग पारदर्शी थी।",
+            "मित्रों को भी इसकी सलाह दूँगा।",
         ]),
     ],
     "marathi": [
         ("casual", [
-            "शनिवारी गेलो होतो, वातावरण छान होतं.",
-            "जेवण गरम आणि ताजं होतं.",
-            "स्टाफ पण बोलायला चांगला होता.",
-            "जागा स्वच्छ होती आणि बसण्याची सोय पण बरी होती.",
+            "अनुभव छान होता.",
+            "स्टाफ मदतीला तत्पर होता आणि नीट समजावलं.",
+            "जागा स्वच्छ आणि व्यवस्थित होती.",
+            "जे हवं होतं तेच नीट मिळालं.",
             "किंमत पण योग्य वाटली.",
-            "परत नक्की येऊ, कुटुंबाला पण घेऊन येऊ.",
+            "परत नक्की येऊ.",
         ]),
         ("enthusiastic", [
-            "आम्ही नेहमी येतो इथे.",
-            "चव नेहमी सारखी असते.",
-            "स्टाफ पण व्यवस्थित आणि मदतीला तत्पर आहे.",
-            "जेवण ताजं आणि गरम असतं प्रत्येक वेळी.",
-            "जागेची साज-सजावट पण आवडली.",
-            "नक्की परत येणार, मित्रांना पण सांगणार.",
+            "इथला अनुभव खूप छान होता.",
+            "स्टाफ नम्र आहे आणि नीट लक्ष देतात.",
+            "Quality प्रत्येक वेळी सारखी असते.",
+            "जागेची निगा नीट राखली आहे.",
+            "जे अपेक्षित होतं तेच मिळालं.",
+            "पुढेही नक्की येणार.",
         ]),
         ("formal", [
             "अनुभव समाधानकारक होता.",
             "कर्मचारी व्यवस्थित आणि सभ्य होते.",
-            "जे मागवलं ते वेळेत मिळालं.",
-            "जागा स्वच्छ आणि बसण्याची सोय आरामदायी होती.",
-            "किंमत योग्य वाटली आणि बिलिंग पारदर्शक होतं.",
+            "Quality अपेक्षेप्रमाणे होती.",
+            "जागा स्वच्छ आणि नीट होती.",
+            "बिलिंग पारदर्शक आणि लवकर झालं.",
             "मित्रांना पण शिफारस करेन.",
         ]),
     ],

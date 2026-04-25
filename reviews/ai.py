@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from django.conf import settings
@@ -100,35 +100,38 @@ FORBIDDEN_PHRASES = [
 ]
 
 
-# Few-shot examples keyed by star rating — real reviews sound different at
-# each rating, but ALL examples must be cleanly positive. No "but" caveats,
-# no mention of waits / delays / small portions / price complaints / "for
-# the area" framings. Small imperfections (missing commas, code-switching,
-# contractions) are encouraged; negativity is not.
+# Few-shot examples keyed by star rating. CRITICAL constraints on these:
+#
+# 1. Strictly positive — no "but" caveats, no mention of waits/delays/small
+#    portions/price complaints/"for the area" framings.
+# 2. Strictly TRUTHFUL — no fabricated weekday/date/time claims, no invented
+#    staff names, no invented dishes/products/services. The model treats
+#    these as exemplars, so any fabrication here gets copied into output.
+# 3. Strictly BUSINESS-AGNOSTIC — these are templates for *feel*, not for
+#    "what to talk about". Avoid food/menu/dish/order language so the model
+#    doesn't drag food framing into a gym/clinic/retail review.
+#
+# Small imperfections (missing commas, code-switching, contractions) are
+# encouraged; negativity and fabrication are not.
 FEW_SHOT_EXAMPLES = {
     5: [
-        # English
-        "Chicken biryani came hot with a boiled egg on top, raita was enough for two. Family liked it, we're definitely coming back this weekend.",
-        # Hinglish (Roman)
-        "Paneer butter masala yahan ka regular hai humare ghar mein. Taste har baar consistent hota hai, delivery bhi smooth rehti hai. Recommend karta hu.",
-        # Hinglish (Devanagari)
-        "हमेशा family के साथ आते हैं, staff अब पहचानता है। कल बेटे का birthday था तो उन्होंने बिना बोले cake cut करवा दिया, nice gesture.",
-        # Hindi (Devanagari)
-        "सर्विस अच्छी रही, खाना गरम और ताज़ा आया। staff ने पूछ-पूछ के हर चीज़ serve की।",
-        # Marathi (Devanagari)
-        "आम्ही नेहमी शनिवारी इथे येतो. जेवण चांगलं असतं, चव मस्त. पावभाजी विशेषतः छान लागली.",
+        "Genuinely happy with the visit. Staff was attentive and walked us through everything we asked, place was well kept and the experience felt smooth end to end.",
+        "Yahan ka experience kaafi achha raha. Staff polite tha, properly attend kiya, jo expect kiya tha wo bhi mila. Recommend karta hu.",
+        "Staff ने अच्छे से help की, properly समझाया भी। जगह clean थी और overall experience smooth रहा।",
+        "अनुभव बढ़िया रहा। staff ने ध्यान से काम किया, जगह व्यवस्थित थी और जो चाहिए था वही मिला।",
+        "इथला अनुभव छान होता. कर्मचारी नीट लक्ष देत होते, जागा स्वच्छ होती आणि सगळं नीट पार पडलं.",
     ],
     4: [
-        "Good place. Schezwan noodles had the right kick, portion looked right for one person. AC was working, staff was helpful when we asked for a menu change.",
-        "Haircut achcha kiya bhaiya ne, style bilkul waisa hi jo maine bola tha. Shop clean hai, mirror bhi achcha lighting hai.",
-        "खाना गरम और fresh मिला, taste घर जैसा लगा। delivery boy ने polite तरीके से handover किया और बिल भी सही था।",
-        "काम व्यवस्थित झालं. कामगार शांतपणे बोलले, जे सांगितलं ते नीट केलं. परत येऊ असं वाटतं.",
+        "Solid experience. Staff was polite and the place was easy to deal with, what we got matched what we expected.",
+        "Theek thaak experience tha. Staff helpful tha, baat properly samjhayi, jagah bhi properly maintained thi.",
+        "अच्छा रहा। staff helpful था, properly attend किया और जो चाहिए था वही मिला।",
+        "काम नीट झालं. कर्मचारी शांतपणे बोलले आणि जे हवं होतं तेच मिळालं.",
     ],
     3: [
         # 3-star: short, brief, neutral-positive. Not complaining, not gushing.
-        "Okay experience. Simple food, done right, nothing fancy. Will visit again when in the area.",
-        "Theek raha. Jo order kiya wahi mila, bill bhi normal tha. Staff ne respect se baat ki.",
-        "Average experience raha. Service normal thi, staff ne help ki, jo chahiye tha wo mil gaya.",
+        "Okay experience. Did the job, staff was respectful, no complaints.",
+        "Theek raha. Jo chahiye tha wahi mila, staff ne respect se baat ki.",
+        "Average experience raha. Staff ne help ki, jo chahiye tha wo mil gaya.",
     ],
 }
 
@@ -140,10 +143,14 @@ BUSINESS CONTEXT:
 - Type: {business_type}
 - Location/branch: {location_name}
 {business_vocabulary_section}{business_style_section}
+ALLOWED TOPICS — the ONLY topics you may write about for this business:
+{enabled_categories_block}
+
 CUSTOMER INPUT:
 - Star rating given: {star_rating}/5 ({rating_mood})
-- Things they noticed / liked: {categories}
-- Specific items or services: {items}
+- Categories the customer specifically picked: {categories}
+- Focus categories for this generation: {focus_categories}
+- Specific items / services the customer picked: {items}
 - Language mode requested: {language_mode}
 - Tone mode requested: {tone_mode}
 - Target review length: {length} ({length_description})
@@ -177,21 +184,30 @@ HOW REAL REVIEWS SOUND (follow this feel, not the exact words):
 
 CRITICAL RULES:
 1. Write like a normal happy customer, not a marketer. Specific and grounded. Boring is fine; fake is not.
-2. Name at least one concrete thing — a dish, a staff member's role, a specific product, a visible detail. If the customer gave "Specific items", weave one or two into the reviews naturally.
-3. Allow small natural imperfections: missing Oxford commas, a contraction, mid-sentence lowercase "i". These make it feel typed on a phone. Do NOT introduce typos in every variant — 80%+ should be clean.
-4. Vary sentence lengths. A review with three equal-length sentences reads like a template.
-5. Do not start two variants with the same word or phrase.
-6. Match mood to the star rating:
+2. STAY INSIDE THE ALLOWED TOPICS — THIS IS THE MOST IMPORTANT RULE.
+   - The "ALLOWED TOPICS" list above defines the only aspects you may discuss for this business.
+   - Each variant should anchor on the "Focus categories for this generation". If a focus category is given, every variant must clearly speak to it. If multiple are listed, distribute them across the four variants.
+   - NEVER mention a topic that is not in ALLOWED TOPICS. Example: for a gym do not mention food, taste, dishes, menu items, or ambiance unless those words appear in ALLOWED TOPICS. For a bookstore do not mention waiters or chefs. If in doubt, leave it out.
+3. DO NOT FABRICATE FACTS — the customer must not feel the review is made up.
+   - Do NOT invent days of the week, dates, times, weather, seasons, festivals, or visit history. No "visited on Saturday", "every weekend we come here", "yesterday I was here", "third time visiting", "during the rains", "Diwali special".
+   - Do NOT invent staff names, owner names, family member names, distances ("5 minutes from my home"), trip purposes, or specific monetary figures the customer did not provide.
+   - Do NOT invent menu items, dishes, services, products, brand names, model numbers, or treatments. ONLY mention items that appear under "Specific items / services the customer picked". If that list is empty, do NOT name any specific item — describe the experience generically within the focus categories instead.
+   - Do NOT invent quantities ("ordered 3 pizzas"), companions ("came with my family of five"), or events ("for my son's birthday") unless that detail is in CUSTOMER INPUT.
+   - The review should feel like a genuine reaction to the visit, written in plain language, without any concrete claim that wasn't given to you.
+4. Allow small natural imperfections: missing Oxford commas, a contraction, mid-sentence lowercase "i". These make it feel typed on a phone. Do NOT introduce typos in every variant — 80%+ should be clean.
+5. Vary sentence lengths. A review with three equal-length sentences reads like a template.
+6. Do not start two variants with the same word or phrase.
+7. Match mood to the star rating:
    - 5 stars → warm and specific, not breathless. Reads like a returning customer.
    - 4 stars → positive and relaxed. Still recommending without reservation.
    - 3 stars → brief and neutral-positive. "Okay", "fine", "decent" is the ceiling — never "amazing", never complaining either.
-7. KEEP IT POSITIVE — THIS IS THE MOST IMPORTANT RULE.
+8. KEEP IT POSITIVE.
    - NEVER insert complaints, caveats, or "but..." qualifiers, even to "balance" the review.
    - Do NOT mention: waits, queues, delays, "late", slow service, small portion size, price complaints, hot weather, anything the customer might gripe about.
    - Do NOT use backhanded framings: "for the area", "for the price", "for what it is", "not the best but", "nothing special but", "area ke hisaab se", "paisa vasool" used as a consolation.
    - If you can't say something cleanly positive about some aspect, just don't mention it.
    - Even natural-sounding negative detail is banned here. A real review might say "had to wait 15 mins but it was worth it" — we don't want that. Write as if the wait never happened.
-8. Never use the FORBIDDEN PHRASES above. If tempted, pick a plainer, cleaner alternative.
+9. Never use the FORBIDDEN PHRASES above. If tempted, pick a plainer, cleaner alternative.
 
 OUTPUT FORMAT — respond with ONLY this JSON, no explanation, no markdown fences:
 {{
@@ -223,6 +239,8 @@ class GenerationInput:
     items: list[str]
     language_mode: str
     tone_mode: str
+    enabled_category_labels: list[str] = field(default_factory=list)
+    focus_categories: list[str] = field(default_factory=list)
 
 
 class PromptBuilder:
@@ -279,14 +297,21 @@ class PromptBuilder:
 
         forbidden_block = ", ".join(f'"{p}"' for p in FORBIDDEN_PHRASES)
 
+        enabled_labels = self.input.enabled_category_labels or ["general experience"]
+        enabled_categories_block = "\n".join(f"- {label}" for label in enabled_labels)
+
+        focus = self.input.focus_categories or self.input.categories
+        focus_value = ", ".join(focus) if focus else "(none — pick ONE topic from ALLOWED TOPICS at random and anchor every variant on it)"
+
         return PROMPT_TEMPLATE.format(
             business_type=self.input.business.get_business_type_display(),
             business_name=self.input.business.name,
             location_name=self.input.location_name or "Main",
             star_rating=self.input.star_rating,
             rating_mood=_RATING_MOOD.get(self.input.star_rating, "positive"),
-            categories=", ".join(self.input.categories) or "general experience",
-            items=", ".join(self.input.items) or "none specified",
+            categories=", ".join(self.input.categories) if self.input.categories else "(none specified by customer)",
+            focus_categories=focus_value,
+            items=", ".join(self.input.items) if self.input.items else "(none — do NOT name any specific item, dish, product, or service)",
             language_mode=self.input.language_mode,
             tone_mode=self.input.tone_mode,
             length=length,
@@ -299,6 +324,7 @@ class PromptBuilder:
             business_name_instruction=business_name_instruction,
             forbidden_block=forbidden_block,
             few_shot_block=few_shot_block,
+            enabled_categories_block=enabled_categories_block,
         )
 
 

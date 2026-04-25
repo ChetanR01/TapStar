@@ -18,8 +18,23 @@ logger = logging.getLogger(__name__)
 def create_business_settings(sender, instance: Business, created: bool, **kwargs):
     if not created:
         return
-    from settings_mgr.models import BusinessSettings
+    from settings_mgr.models import BusinessCategory, BusinessSettings
+    from reviews.business_types import default_categories_for
+
     BusinessSettings.objects.get_or_create(business=instance)
+
+    # Seed top-level categories from the type registry on first creation only.
+    if not BusinessCategory.objects.filter(business=instance, parent__isnull=True).exists():
+        defaults = default_categories_for(instance.business_type)
+        for index, cat in enumerate(defaults):
+            BusinessCategory.objects.create(
+                business=instance,
+                parent=None,
+                key=cat["key"],
+                label=cat["label"],
+                is_enabled=True,
+                sort_order=index * 10,
+            )
 
 
 @receiver(post_save, sender=Location)

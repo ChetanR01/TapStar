@@ -40,8 +40,6 @@ LENGTH_CHOICES = [
     (LENGTH_DETAILED, "Detailed (5-7 sentences)"),
 ]
 
-DEFAULT_CATEGORIES = {"food": True, "staff": True, "service": True, "ambiance": True}
-
 
 class BusinessSettings(models.Model):
     business = models.OneToOneField(Business, on_delete=models.CASCADE, related_name="review_settings")
@@ -56,7 +54,6 @@ class BusinessSettings(models.Model):
 
     custom_keywords = models.JSONField(default=list, blank=True)
     blocked_phrases = models.JSONField(default=list, blank=True)
-    categories_enabled = models.JSONField(default=dict, blank=True)
     menu_items = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -68,10 +65,40 @@ class BusinessSettings(models.Model):
     def __str__(self):
         return f"Settings for {self.business.name}"
 
-    def save(self, *args, **kwargs):
-        if not self.categories_enabled:
-            self.categories_enabled = dict(DEFAULT_CATEGORIES)
-        super().save(*args, **kwargs)
+
+class BusinessCategory(models.Model):
+    """Per-business review category. Replaces the old categories_enabled JSON.
+
+    A category may have a parent — top-level entries are categories, children
+    are subcategories. The customer review page renders all enabled rows as
+    chips; the AI prompt restricts itself to enabled rows. Disabled rows are
+    hidden from customers and the model entirely.
+    """
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="categories")
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="subcategories"
+    )
+    key = models.CharField(max_length=80)
+    label = models.CharField(max_length=120)
+    is_enabled = models.BooleanField(default=True)
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "label"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["business", "parent", "key"], name="uniq_category_per_business"
+            )
+        ]
+        verbose_name = "Business category"
+        verbose_name_plural = "Business categories"
+
+    def __str__(self):
+        prefix = f"{self.parent.label} › " if self.parent_id else ""
+        return f"{self.business.name}: {prefix}{self.label}"
 
 
 class LocationSettings(models.Model):

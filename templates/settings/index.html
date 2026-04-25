@@ -162,6 +162,72 @@
     font-style: italic;
     white-space: pre-wrap;
   }
+
+  .cat-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .cat-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+  .cat-head, .cat-sub-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .cat-sub-list { margin-top: 8px; padding-left: 16px; border-left: 2px solid #e5e7eb; display: flex; flex-direction: column; gap: 6px; }
+  .cat-sub-row {
+    grid-template-columns: 16px 1fr auto auto;
+    padding: 4px 0;
+  }
+  .cat-sub-marker { color: var(--muted); font-size: 16px; line-height: 1; }
+  .cat-label {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .cat-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .cat-toggle input[type=checkbox] {
+    appearance: none;
+    width: 36px; height: 20px;
+    background: #e5e7eb; border-radius: 999px; position: relative; cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .cat-toggle input[type=checkbox]:checked { background: var(--brand); }
+  .cat-toggle input[type=checkbox]::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%;
+    transition: left 0.15s ease;
+  }
+  .cat-toggle input[type=checkbox]:checked::after { left: 18px; }
+  .cat-delete {
+    border: none; background: transparent; color: #b91c1c;
+    font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .cat-delete:hover { background: #fee2e2; }
+
+  .cat-add-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+  .cat-add-row input[type=text],
+  .cat-add-row select {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    background: #fff;
+  }
+  .cat-add-btn {
+    border: none; background: var(--brand); color: #fff;
+    border-radius: 8px; padding: 9px 16px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
 </style>
 {% endblock %}
 
@@ -256,13 +322,49 @@
   <!-- Categories -->
   <div class="section">
     <h2>Categories customers can pick</h2>
-    <p class="sub">Turn off any that don't apply to your business.</p>
-    {% for key, label, checked in category_rows %}
-      <div class="switch">
-        <span class="label-text">{{ label }}</span>
-        <input type="checkbox" name="category_{{ key }}" {% if checked %}checked{% endif %}>
-      </div>
-    {% endfor %}
+    <p class="sub">These chips show up on your QR review page. Disabled rows are hidden from customers and the AI never writes about them. Add subcategories to organise larger menus (e.g. Food › Biryani).</p>
+    <div class="cat-list">
+      {% for entry in category_tree %}
+        <div class="cat-row">
+          <div class="cat-head">
+            <input type="text" name="category_label_{{ entry.row.id }}" value="{{ entry.row.label }}" maxlength="120" class="cat-label">
+            <label class="cat-toggle">
+              <input type="checkbox" name="category_enabled_{{ entry.row.id }}" {% if entry.row.is_enabled %}checked{% endif %}>
+              <span>Enabled</span>
+            </label>
+            <button type="submit" form="cat-delete-{{ entry.row.id }}" class="cat-delete" aria-label="Delete category" title="Delete category">×</button>
+          </div>
+          {% if entry.subcategories %}
+            <div class="cat-sub-list">
+              {% for sub in entry.subcategories %}
+                <div class="cat-sub-row">
+                  <span class="cat-sub-marker">›</span>
+                  <input type="text" name="category_label_{{ sub.id }}" value="{{ sub.label }}" maxlength="120" class="cat-label">
+                  <label class="cat-toggle">
+                    <input type="checkbox" name="category_enabled_{{ sub.id }}" {% if sub.is_enabled %}checked{% endif %}>
+                    <span>Enabled</span>
+                  </label>
+                  <button type="submit" form="cat-delete-{{ sub.id }}" class="cat-delete" aria-label="Delete subcategory" title="Delete subcategory">×</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="muted">No categories yet — add one below.</p>
+      {% endfor %}
+    </div>
+
+    <div class="cat-add-row">
+      <input type="text" form="cat-add-form" name="label" placeholder="Add a category…" maxlength="120" required>
+      <select form="cat-add-form" name="parent_id">
+        <option value="">— Top-level</option>
+        {% for pid, plabel in parent_choices %}
+          <option value="{{ pid }}">Subcategory of: {{ plabel }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" form="cat-add-form" class="cat-add-btn">+ Add</button>
+    </div>
   </div>
 
   <!-- Menu items -->
@@ -332,6 +434,17 @@
     <button type="submit">Save settings</button>
   </div>
 </form>
+
+<!-- Sibling forms for category add / delete. These live outside the main settings
+     form so each can post to its own URL. The visible inputs/buttons live inside
+     the main form's DOM but are bound here via the HTML5 form="" attribute. -->
+<form id="cat-add-form" method="post" action="{% url 'settings_category_add' %}" hidden>{% csrf_token %}</form>
+{% for entry in category_tree %}
+  <form id="cat-delete-{{ entry.row.id }}" method="post" action="{% url 'settings_category_delete' entry.row.id %}" hidden>{% csrf_token %}</form>
+  {% for sub in entry.subcategories %}
+    <form id="cat-delete-{{ sub.id }}" method="post" action="{% url 'settings_category_delete' sub.id %}" hidden>{% csrf_token %}</form>
+  {% endfor %}
+{% endfor %}
 
 <script>
 (function () {

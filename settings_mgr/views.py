@@ -1,24 +1,25 @@
 """Settings management view — business profile, language, tone, categories, menu, keywords, blocked phrases."""
 
 import random
+import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.models import User
 from reviews.business_types import (
     TYPE_REGISTRY,
     default_categories_for,
-    default_categories_map,
     grouped_choices,
 )
 from reviews.fallback import build_fallback_variants
 
 from .models import (
+    BusinessCategory,
     BusinessSettings,
-    DEFAULT_CATEGORIES,
     LANGUAGE_CHOICES,
     LANGUAGE_HINGLISH,
     LANGUAGE_HINGLISH_DEV,
@@ -28,9 +29,12 @@ from .models import (
 )
 
 
-# Legacy 4-category default set — if categories_enabled matches this exactly,
-# we assume the owner never customised it and re-seed from the new type registry.
-_LEGACY_DEFAULT_KEYS = frozenset({"food", "staff", "service", "ambiance"})
+_KEY_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify_key(value: str) -> str:
+    cleaned = _KEY_RE.sub("_", value.strip().lower()).strip("_")
+    return cleaned[:60] or "category"
 
 
 def _plan_allows_pro(user) -> bool:
@@ -53,22 +57,64 @@ def _build_sample_preview(settings_obj: BusinessSettings, business_name: str) ->
     return random.choice(variants)["text"] if variants else ""
 
 
-def _categories_look_untouched(cats: dict) -> bool:
-    """Heuristic: the categories map is either empty or still the legacy 4-item default."""
-    if not cats:
-        return True
-    keys = {k for k, v in cats.items() if v}
-    return keys.issubset(_LEGACY_DEFAULT_KEYS) or keys == set(DEFAULT_CATEGORIES.keys())
+def _reseed_categories_for_type(business, new_type: str):
+    """When the owner switches business type, replace untouched categories with the new type's defaults.
+
+    Untouched = every existing top-level category came from the previous type's
+    default set. If the owner has added/renamed/disabled anything, we leave the
+    existing rows alone (only seed new defaults that don't already exist).
+    """
+    existing_keys = set(
+        BusinessCategory.objects.filter(business=business, parent__isnull=True).values_list("key", flat=True)
+    )
+    prev_default_keys = {c["key"] for c in default_categories_for(business.business_type)}
+
+    if existing_keys and existing_keys.issubset(prev_default_keys):
+        # Untouched — wipe and re-seed for new type.
+        BusinessCategory.objects.filter(business=business).delete()
+        for index, cat in enumerate(default_categories_for(new_type)):
+            BusinessCategory.objects.create(
+                business=business,
+                parent=None,
+                key=cat["key"],
+                label=cat["label"],
+                is_enabled=True,
+                sort_order=index * 10,
+            )
+        return
+
+    # Customised — only fill in defaults that the owner doesn't already have.
+    for index, cat in enumerate(default_categories_for(new_type)):
+        if cat["key"] in existing_keys:
+            continue
+        BusinessCategory.objects.create(
+            business=business,
+            parent=None,
+            key=cat["key"],
+            label=cat["label"],
+            is_enabled=True,
+            sort_order=(len(existing_keys) + index) * 10,
+        )
 
 
-def _maybe_reseed_categories(business, settings_obj: BusinessSettings, new_type: str):
-    """When business type changes and categories haven't been customised, reseed."""
-    if business.business_type == new_type:
-        return False
-    if not _categories_look_untouched(settings_obj.categories_enabled):
-        return False
-    settings_obj.categories_enabled = default_categories_map(new_type)
-    return True
+def _build_category_tree(business) -> list[dict]:
+    """List of dicts the template renders. Each parent has a `subcategories` list."""
+    rows = list(
+        BusinessCategory.objects
+        .filter(business=business)
+        .order_by("sort_order", "label")
+    )
+    by_parent: dict[int | None, list[BusinessCategory]] = {}
+    for r in rows:
+        by_parent.setdefault(r.parent_id, []).append(r)
+
+    tree: list[dict] = []
+    for parent in by_parent.get(None, []):
+        tree.append({
+            "row": parent,
+            "subcategories": by_parent.get(parent.id, []),
+        })
+    return tree
 
 
 @login_required
@@ -81,20 +127,16 @@ def settings_page(request):
     settings_obj, _ = BusinessSettings.objects.get_or_create(business=business)
     pro_allowed = _plan_allows_pro(request.user)
     language_options = _plan_language_options(request.user)
-
-    # Category chips available in the UI are driven by the current business type.
-    type_default_categories = default_categories_for(business.business_type)
     valid_type_keys = set(TYPE_REGISTRY.keys())
 
     if request.method == "POST":
         # ---- Business profile (type) ----
         posted_type = request.POST.get("business_type", business.business_type)
         if posted_type in valid_type_keys and posted_type != business.business_type:
-            _maybe_reseed_categories(business, settings_obj, posted_type)
-            business.business_type = posted_type
-            business.save(update_fields=["business_type"])
-            # Refresh defaults for the category checkbox rendering below
-            type_default_categories = default_categories_for(business.business_type)
+            with transaction.atomic():
+                _reseed_categories_for_type(business, posted_type)
+                business.business_type = posted_type
+                business.save(update_fields=["business_type"])
 
         allowed_languages = {code for code, _ in language_options}
         posted_language = request.POST.get("language_mode", settings_obj.language_mode)
@@ -112,18 +154,20 @@ def settings_page(request):
         settings_obj.allow_customer_language_change = bool(request.POST.get("allow_customer_language_change"))
         settings_obj.mention_business_name = bool(request.POST.get("mention_business_name"))
 
-        # Categories: which chips are enabled. Only accept keys that belong
-        # to this business type's registry entry.
-        type_cat_keys = [c["key"] for c in type_default_categories]
-        cats = {}
-        for key in type_cat_keys:
-            cats[key] = bool(request.POST.get(f"category_{key}"))
-        # Preserve any custom keys the owner already had set and didn't post
-        # (so one accidental type change doesn't wipe customisations):
-        for k, v in (settings_obj.categories_enabled or {}).items():
-            if k not in cats:
-                cats[k] = v
-        settings_obj.categories_enabled = cats
+        # ---- Categories: per-row enable toggle and label rename ----
+        owner_categories = BusinessCategory.objects.filter(business=business)
+        for row in owner_categories:
+            posted_label = (request.POST.get(f"category_label_{row.id}") or "").strip()
+            posted_enabled = bool(request.POST.get(f"category_enabled_{row.id}"))
+            changed = False
+            if posted_label and posted_label != row.label:
+                row.label = posted_label[:120]
+                changed = True
+            if posted_enabled != row.is_enabled:
+                row.is_enabled = posted_enabled
+                changed = True
+            if changed:
+                row.save(update_fields=["label", "is_enabled"])
 
         raw_items = [v.strip()[:80] for v in request.POST.getlist("menu_items") if v.strip()]
         seen = set()
@@ -150,27 +194,10 @@ def settings_page(request):
         return redirect("settings_page")
 
     preview = _build_sample_preview(settings_obj, business.name)
-
-    # Build category rows — union of type defaults and any previously saved keys,
-    # so owners don't lose custom chips when rendering.
-    saved_cats = settings_obj.categories_enabled or {}
-    type_keys = [c["key"] for c in type_default_categories]
-    ordered_keys: list[str] = list(type_keys)
-    for k in saved_cats.keys():
-        if k not in ordered_keys:
-            ordered_keys.append(k)
-
-    key_to_label = {c["key"]: c["label"] for c in type_default_categories}
-    # Legacy labels for any keys no longer in the registry for this type
-    legacy_labels = {"food": "Food", "staff": "Staff", "service": "Service", "ambiance": "Ambiance"}
-
-    category_rows = [
-        (
-            k,
-            key_to_label.get(k, legacy_labels.get(k, k.replace("_", " ").title())),
-            bool(saved_cats.get(k, k in type_keys)),
-        )
-        for k in ordered_keys
+    category_tree = _build_category_tree(business)
+    parent_choices = [
+        (row["row"].id, row["row"].label)
+        for row in category_tree
     ]
 
     return render(
@@ -183,7 +210,8 @@ def settings_page(request):
             "language_options": language_options,
             "tone_options": TONE_CHOICES,
             "length_options": LENGTH_CHOICES,
-            "category_rows": category_rows,
+            "category_tree": category_tree,
+            "parent_choices": parent_choices,
             "menu_items": settings_obj.menu_items or [],
             "custom_keywords": settings_obj.custom_keywords or [],
             "blocked_phrases": settings_obj.blocked_phrases or [],
@@ -192,3 +220,74 @@ def settings_page(request):
             "preview": preview,
         },
     )
+
+
+@login_required
+@require_POST
+def category_add(request):
+    business = request.user.businesses.first()
+    if not business:
+        return redirect("business_onboarding")
+
+    label = (request.POST.get("label") or "").strip()
+    if not label:
+        messages.error(request, "Category name cannot be empty.")
+        return redirect("settings_page")
+
+    parent_id = request.POST.get("parent_id") or ""
+    parent = None
+    if parent_id:
+        try:
+            parent = BusinessCategory.objects.get(pk=int(parent_id), business=business, parent__isnull=True)
+        except (BusinessCategory.DoesNotExist, ValueError):
+            messages.error(request, "Invalid parent category.")
+            return redirect("settings_page")
+
+    base_key = _slugify_key(label)
+    key = base_key
+    suffix = 2
+    while BusinessCategory.objects.filter(business=business, parent=parent, key=key).exists():
+        key = f"{base_key}_{suffix}"
+        suffix += 1
+
+    last_order = (
+        BusinessCategory.objects
+        .filter(business=business, parent=parent)
+        .order_by("-sort_order")
+        .values_list("sort_order", flat=True)
+        .first()
+    )
+    next_order = (last_order or 0) + 10
+
+    try:
+        BusinessCategory.objects.create(
+            business=business,
+            parent=parent,
+            key=key,
+            label=label[:120],
+            is_enabled=True,
+            sort_order=next_order,
+        )
+    except IntegrityError:
+        messages.error(request, "Could not add — a category with this name already exists.")
+        return redirect("settings_page")
+
+    if parent:
+        messages.success(request, f"Subcategory “{label}” added under “{parent.label}”.")
+    else:
+        messages.success(request, f"Category “{label}” added.")
+    return redirect("settings_page")
+
+
+@login_required
+@require_POST
+def category_delete(request, category_id: int):
+    business = request.user.businesses.first()
+    if not business:
+        return redirect("business_onboarding")
+
+    row = get_object_or_404(BusinessCategory, pk=category_id, business=business)
+    label = row.label
+    row.delete()  # cascades to subcategories
+    messages.success(request, f"Removed “{label}”.")
+    return redirect("settings_page")

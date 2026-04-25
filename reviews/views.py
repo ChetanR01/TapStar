@@ -2,6 +2,7 @@
 
 import json
 import logging
+import random
 from urllib.parse import quote
 
 from django.conf import settings
@@ -15,7 +16,6 @@ from businesses.models import Location
 from settings_mgr.services import get_effective_settings
 
 from .ai import GenerationInput, generate_variants
-from .business_types import category_labels_for
 from .models import ReviewRequest, ReviewVariant, ReviewSubmission
 
 logger = logging.getLogger(__name__)
@@ -32,15 +32,6 @@ CUSTOMER_LANGUAGE_OPTIONS = [
     {"code": "minglish", "label": "Marathi-English"},
     {"code": "random", "label": "Surprise me"},
 ]
-
-
-# Fallback label lookup when a saved category key isn't in the type registry.
-_LEGACY_CATEGORY_LABELS = {
-    "food": "Food",
-    "staff": "Staff",
-    "service": "Service",
-    "ambiance": "Ambiance",
-}
 
 
 def _json_response(success: bool, data=None, error: str | None = None, status: int = 200) -> JsonResponse:
@@ -68,13 +59,9 @@ def customer_review_page(request, token):
         raise Http404()
 
     effective = get_effective_settings(location)
-    type_labels = category_labels_for(business.business_type)
     enabled_categories = [
-        {
-            "key": k,
-            "label": type_labels.get(k) or _LEGACY_CATEGORY_LABELS.get(k) or k.replace("_", " ").title(),
-        }
-        for k in effective.enabled_category_keys()
+        {"key": c.key, "label": c.display_label}
+        for c in effective.enabled_categories
     ]
 
     # Config passed to frontend JS
@@ -130,8 +117,8 @@ def generate_review_api(request):
     if star_rating < 1 or star_rating > 5:
         return _json_response(False, error="star_rating must be 1-5", status=400)
 
-    categories = [str(c) for c in body.get("categories") or []]
-    items = [str(i) for i in body.get("items") or []]
+    raw_categories = [str(c) for c in body.get("categories") or []]
+    raw_items = [str(i) for i in body.get("items") or []]
     requested_language = str(body.get("language") or "").lower().strip()
 
     effective = get_effective_settings(location)
@@ -145,22 +132,51 @@ def generate_review_api(request):
 
     tone_mode = effective.tone_mode
 
+    # Disabled categories must never reach the prompt. Pull the labels straight
+    # off the resolver — it already filters out disabled rows.
+    enabled_labels_by_key = {c.key: c.display_label for c in effective.enabled_categories}
+    enabled_label_list = list(enabled_labels_by_key.values())
+
+    # Customer-submitted categories: keep only those the owner has enabled.
+    sanitized_categories = [
+        enabled_labels_by_key[c] for c in raw_categories if c in enabled_labels_by_key
+    ]
+
+    # If the customer didn't pick a category, randomly pick ONE enabled category
+    # to anchor the variants on, so the AI cannot drift to an off-list topic.
+    if sanitized_categories:
+        focus_categories = sanitized_categories
+    elif enabled_label_list:
+        focus_categories = [random.choice(enabled_label_list)]
+    else:
+        focus_categories = []
+
+    # Items: only allow items the owner configured for this business. Anything
+    # else is rejected so the model never names an item that wasn't explicitly
+    # selected.
+    allowed_items = {str(i).strip().lower(): str(i).strip() for i in (effective.menu_items or [])}
+    sanitized_items = [
+        allowed_items[i.strip().lower()] for i in raw_items if i.strip().lower() in allowed_items
+    ]
+
     gen_input = GenerationInput(
         business=location.business,
         location_name=location.name,
         star_rating=star_rating,
-        categories=categories,
-        items=items,
+        categories=sanitized_categories,
+        items=sanitized_items,
         language_mode=language_mode,
         tone_mode=tone_mode,
+        enabled_category_labels=enabled_label_list,
+        focus_categories=focus_categories,
     )
 
     with transaction.atomic():
         review_request = ReviewRequest.objects.create(
             location=location,
             star_rating=star_rating,
-            selected_categories=categories,
-            selected_items=items,
+            selected_categories=sanitized_categories,
+            selected_items=sanitized_items,
             language_mode_used=language_mode,
             tone_mode_used=tone_mode,
             is_negative=star_rating <= effective.negative_filter_threshold,
