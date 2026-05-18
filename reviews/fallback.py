@@ -111,28 +111,28 @@ FALLBACK_BY_LANGUAGE: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "minglish": [
         ("casual", [
-            "Anubhav changla hota.",
-            "Staff helpful hota ani sagle nit samjawla.",
-            "Jagah swachchha aani vyavasthit hoti.",
-            "Je havya hote te nit milala.",
-            "Kimmat pan baryapaiki vatli.",
-            "Parat yeu asa vatto.",
+            "Ithla anubhav chhan hota.",
+            "Staff madat karayla tatpar hota ani sagla nit samjavla.",
+            "Jaaga svachh ani vyavasthit hoti.",
+            "Je hava hota tech milala.",
+            "Kimat pan barobar vatli.",
+            "Parat nakki yeu.",
         ]),
         ("enthusiastic", [
-            "Yethla anubhav khup chaan hota.",
-            "Staff polite aahe ani nit attend kartat.",
-            "Quality consistent aste prati vela.",
-            "Jagah vyavasthit maintained aahe.",
-            "Je expect kele te pan milala.",
-            "Pudhe pan yeil mhante.",
+            "Ithla anubhav khup chhan hota.",
+            "Staff vinamra aahe ani nit laksha detat.",
+            "Quality dar veli saarkhich aste.",
+            "Jagechi nigaa nit thevli aahe.",
+            "Je apekshit hota tech milala.",
+            "Pudhe pan nakki yenar.",
         ]),
         ("formal", [
-            "Anubhav samadhanakarak hota.",
-            "Staff vyavasthit hota aani vinamra hota.",
+            "Anubhav samadhankarak hota.",
+            "Karmacharyancha behaviour barobar ani sabhya hota.",
             "Quality apekshepramane hoti.",
-            "Jagah swachchha aani nitanitki hoti.",
-            "Bill paardarshak aani lavkar zhala.",
-            "Mitranna pan recommend karen.",
+            "Jaaga svachh ani nit-netaki hoti.",
+            "Billing paardarshak ani lavkar zhali.",
+            "Mitrana pan shifaaras karen.",
         ]),
     ],
     "hindi": [
@@ -163,17 +163,17 @@ FALLBACK_BY_LANGUAGE: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "marathi": [
         ("casual", [
-            "अनुभव छान होता.",
-            "स्टाफ मदतीला तत्पर होता आणि नीट समजावलं.",
-            "जागा स्वच्छ आणि व्यवस्थित होती.",
-            "जे हवं होतं तेच नीट मिळालं.",
+            "इथला अनुभव छान होता.",
+            "कर्मचारी मदतीला तत्पर होते आणि नीट समजावलं.",
+            "जागा स्वच्छ आणि नीटनेटकी होती.",
+            "जे हवं होतं तेच मिळालं.",
             "किंमत पण योग्य वाटली.",
             "परत नक्की येऊ.",
         ]),
         ("enthusiastic", [
             "इथला अनुभव खूप छान होता.",
-            "स्टाफ नम्र आहे आणि नीट लक्ष देतात.",
-            "Quality प्रत्येक वेळी सारखी असते.",
+            "कर्मचारी नम्र आहेत आणि नीट लक्ष देतात.",
+            "Quality दर वेळी सारखीच असते.",
             "जागेची निगा नीट राखली आहे.",
             "जे अपेक्षित होतं तेच मिळालं.",
             "पुढेही नक्की येणार.",
@@ -182,9 +182,9 @@ FALLBACK_BY_LANGUAGE: dict[str, list[tuple[str, list[str]]]] = {
             "अनुभव समाधानकारक होता.",
             "कर्मचारी व्यवस्थित आणि सभ्य होते.",
             "Quality अपेक्षेप्रमाणे होती.",
-            "जागा स्वच्छ आणि नीट होती.",
+            "जागा स्वच्छ आणि नीटनेटकी होती.",
             "बिलिंग पारदर्शक आणि लवकर झालं.",
-            "मित्रांना पण शिफारस करेन.",
+            "मित्रांना सुद्धा शिफारस करेन.",
         ]),
     ],
 }
@@ -201,20 +201,25 @@ def build_fallback_variants(
     language_mode: str,
     business_name: str | None = None,
     length: str = "medium",
+    count: int = 2,
 ) -> list[dict]:
-    """Return 4 variants using pre-written text, at the requested length."""
+    """Return ``count`` variants using pre-written text, at the requested length."""
+    n = max(1, int(count))
     if language_mode == "random":
         pool = []
         for lang, entries in FALLBACK_BY_LANGUAGE.items():
             for tone, sentences in entries:
                 pool.append((lang, tone, sentences))
         random.shuffle(pool)
-        picks = pool[:4]
+        picks = pool[:n]
     else:
         entries = FALLBACK_BY_LANGUAGE.get(language_mode) or FALLBACK_BY_LANGUAGE["english"]
+        # Shuffle tones so retries don't return the same sequence each time
+        shuffled = list(entries)
+        random.shuffle(shuffled)
         picks = []
-        for i in range(4):
-            tone, sentences = entries[i % len(entries)]
+        for i in range(n):
+            tone, sentences = shuffled[i % len(shuffled)]
             picks.append((language_mode, tone, sentences))
 
     variants = []

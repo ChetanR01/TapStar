@@ -601,7 +601,7 @@
     <h2 style="text-align:center;">Writing your review…</h2>
     <div class="gen-steps">
       <span id="g1" class="active">Picking a style</span>
-      <span id="g2">Crafting 4 options</span>
+      <span id="g2">Crafting your options</span>
       <span id="g3">Almost ready</span>
     </div>
   </section>
@@ -614,8 +614,9 @@
       <div id="variantList"></div>
       <button class="btn ghost" id="regenerateBtn" style="margin-top:10px;">
         <span>&#x21bb;</span>
-        Generate 4 more
+        <span id="regenerateLabel">Generate 2 more</span>
       </button>
+      <p class="muted" id="retriesNote" style="margin:8px 0 0; text-align:center; font-size:13px;"></p>
     </div>
     <div class="card">
       <label for="finalText">Your review</label>
@@ -710,10 +711,14 @@
     language: CONFIG.defaultLanguage || 'random',
     requestId: null,
     sessionToken: null,
+    // Variants accumulate across retries. Each has its own .session_token so
+    // submitting an older variant still works after additional retry batches.
     variants: [],
     selectedVariantId: null,
     finalText: '',
     openUrl: '',
+    retryCount: 0,
+    maxRetries: 2,
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -910,7 +915,12 @@
   $('generateBtn').addEventListener('click', startGeneration);
 
   // === Generation ===
-  function startGeneration() {
+  function startGeneration(isRetry) {
+    if (isRetry && state.retryCount >= state.maxRetries) {
+      toast("You've reached the retry limit. Pick one of the existing options.");
+      return;
+    }
+    var fallbackState = isRetry ? 'state-variants' : 'state-language';
     show('state-generating');
     var steps = ['g1', 'g2', 'g3'];
     var active = 0;
@@ -926,28 +936,72 @@
       categories: state.categories,
       items: state.items,
       language: state.language,
+      retry_count: state.retryCount,
     }).then(function (res) {
       clearInterval(stepTimer);
       if (!res.success) {
         toast(res.error || 'Could not generate review.');
-        show('state-language');
+        show(fallbackState);
         return;
       }
       state.requestId = res.data.request_id;
       state.sessionToken = res.data.session_token;
-      state.variants = res.data.variants || [];
-      renderVariants();
+      if (typeof res.data.max_retries === 'number') {
+        state.maxRetries = res.data.max_retries;
+      }
+      // Decorate variants with their batch session_token so submit always
+      // matches the correct ReviewRequest, even after subsequent retries.
+      var newVariants = (res.data.variants || []).map(function (v) {
+        return Object.assign({}, v, {
+          session_token: v.session_token || res.data.session_token,
+        });
+      });
+
+      if (isRetry) {
+        state.variants = state.variants.concat(newVariants);
+        state.retryCount += 1;
+      } else {
+        state.variants = newVariants;
+        state.retryCount = 0;
+      }
+
+      renderVariants(isRetry, newVariants.length);
+      updateRetryButton();
       show('state-variants');
     }).catch(function () {
       clearInterval(stepTimer);
       toast('Network error. Please try again.');
-      show('state-language');
+      show(fallbackState);
     });
   }
 
-  function renderVariants() {
+  function updateRetryButton() {
+    var btn = $('regenerateBtn');
+    var label = $('regenerateLabel');
+    var note = $('retriesNote');
+    var remaining = state.maxRetries - state.retryCount;
+    if (remaining <= 0) {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+      label.textContent = 'No more options';
+      note.textContent = "You've used both retries — pick one above.";
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+      label.textContent = 'Generate 2 more';
+      note.textContent = remaining === state.maxRetries
+        ? ''
+        : (remaining + ' retr' + (remaining === 1 ? 'y' : 'ies') + ' left');
+    }
+  }
+
+  function renderVariants(isRetry, newCount) {
     var list = $('variantList');
     list.innerHTML = '';
+    var firstNewCard = null;
+    var firstNewIdx = isRetry ? state.variants.length - (newCount || 0) : 0;
     state.variants.forEach(function (v, idx) {
       var card = document.createElement('div');
       card.className = 'variant-card';
@@ -960,8 +1014,16 @@
         '<div class="variant-text">' + escapeHtml(v.text) + '</div>';
       card.addEventListener('click', function () { selectVariant(v); });
       list.appendChild(card);
-      if (idx === 0) selectVariant(v, true);
+      if (isRetry && idx === firstNewIdx) firstNewCard = card;
     });
+    if (!isRetry && state.variants.length > 0) {
+      selectVariant(state.variants[0], true);
+    }
+    if (isRetry && firstNewCard) {
+      setTimeout(function () {
+        firstNewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
   }
 
   function selectVariant(v, silent) {
@@ -977,7 +1039,9 @@
     }
   }
 
-  $('regenerateBtn').addEventListener('click', startGeneration);
+  $('regenerateBtn').addEventListener('click', function () {
+    startGeneration(true);
+  });
 
   // === Submit ===
   $('submitToGoogleBtn').addEventListener('click', function () {
@@ -986,11 +1050,22 @@
     if (!finalText) { toast('Review text is empty'); return; }
     state.finalText = finalText;
 
+    // Use the selected variant's own batch session_token (variants from
+    // different retries may belong to different ReviewRequests).
+    var picked = null;
+    for (var i = 0; i < state.variants.length; i++) {
+      if (state.variants[i].id === state.selectedVariantId) {
+        picked = state.variants[i];
+        break;
+      }
+    }
+    var tokenForSubmit = (picked && picked.session_token) || state.sessionToken;
+
     copyToClipboard(finalText);
 
     apiPost(CONFIG.apiUrls.submit, {
       variant_id: state.selectedVariantId,
-      session_token: state.sessionToken,
+      session_token: tokenForSubmit,
       text: finalText,
     }).then(function (res) {
       var url = (res.success && (res.data.google_review_url)) || CONFIG.googleReviewUrl;

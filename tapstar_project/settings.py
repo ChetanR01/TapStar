@@ -214,6 +214,11 @@ CELERY_TIMEZONE = TIME_ZONE
 # Anthropic
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+# Prompt caching only pays off at >~6 generations/hour clustered. Below
+# that, every call is a cache miss and you pay the 1.25x write premium
+# without ever collecting the 0.10x read discount. Off by default; flip
+# to 1 once traffic justifies it.
+ANTHROPIC_PROMPT_CACHE = env_bool("ANTHROPIC_PROMPT_CACHE", False)
 
 # Google Places (optional — enables primary photo fallback on the customer page
 # when a business only has a Place ID and no uploaded logo). Without this key,

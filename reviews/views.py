@@ -15,7 +15,12 @@ from django.views.decorators.http import require_POST
 from businesses.models import Location
 from settings_mgr.services import get_effective_settings
 
-from .ai import GenerationInput, generate_variants
+from .ai import (
+    DEFAULT_VARIANT_COUNT,
+    MAX_RETRIES,
+    GenerationInput,
+    generate_variants,
+)
 from .models import ReviewRequest, ReviewVariant, ReviewSubmission
 
 logger = logging.getLogger(__name__)
@@ -96,7 +101,12 @@ def customer_review_page(request, token):
 
 @require_POST
 def generate_review_api(request):
-    """Generate 4 AI review variants for a QR scan session."""
+    """Generate ``DEFAULT_VARIANT_COUNT`` AI review variants for a QR scan session.
+
+    The frontend may call this up to ``MAX_RETRIES`` additional times for the
+    same customer (1 + MAX_RETRIES total). ``retry_count`` is sent by the
+    client and validated here.
+    """
     body = _parse_json_body(request)
     token = body.get("token")
     if not token:
@@ -116,6 +126,19 @@ def generate_review_api(request):
         return _json_response(False, error="Invalid star_rating", status=400)
     if star_rating < 1 or star_rating > 5:
         return _json_response(False, error="star_rating must be 1-5", status=400)
+
+    try:
+        retry_count = int(body.get("retry_count", 0) or 0)
+    except (TypeError, ValueError):
+        retry_count = 0
+    if retry_count < 0:
+        retry_count = 0
+    if retry_count > MAX_RETRIES:
+        return _json_response(
+            False,
+            error=f"You've already generated the maximum number of options. Pick one of the existing reviews.",
+            status=429,
+        )
 
     raw_categories = [str(c) for c in body.get("categories") or []]
     raw_items = [str(i) for i in body.get("items") or []]
@@ -169,6 +192,7 @@ def generate_review_api(request):
         tone_mode=tone_mode,
         enabled_category_labels=enabled_label_list,
         focus_categories=focus_categories,
+        variant_count=DEFAULT_VARIANT_COUNT,
     )
 
     with transaction.atomic():
@@ -195,12 +219,19 @@ def generate_review_api(request):
             for v in variants
         ]
 
+    session_token = str(review_request.session_token)
+    retries_used = retry_count + 1  # how many generations this customer has used so far (including this one)
+    retries_left = max(0, MAX_RETRIES - retry_count)
+
     return _json_response(
         True,
         data={
             "request_id": review_request.pk,
-            "session_token": str(review_request.session_token),
+            "session_token": session_token,
             "used_fallback": used_fallback,
+            "retries_used": retries_used,
+            "retries_left": retries_left,
+            "max_retries": MAX_RETRIES,
             "variants": [
                 {
                     "id": vo.pk,
@@ -208,6 +239,10 @@ def generate_review_api(request):
                     "language": vo.language,
                     "tone": vo.tone,
                     "text": vo.text,
+                    # Each variant carries its own batch's session_token so the
+                    # frontend can submit older variants even after subsequent
+                    # retry batches change the "current" session_token.
+                    "session_token": session_token,
                 }
                 for vo in variant_objs
             ],

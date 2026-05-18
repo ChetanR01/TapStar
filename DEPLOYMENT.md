@@ -545,6 +545,34 @@ sudo systemctl restart tapstar-celery     # if the worker is enabled
 
 If migrations take a while, consider running them before `restart` so gunicorn serves the old code with the new schema during the window, then restart.
 
+### ⚠️ Pitfall: shell migrate hits SQLite, gunicorn hits Postgres
+
+`tapstar_project/settings.py` falls back to a local `db.sqlite3` when `DATABASE_URL` is not set in the environment. systemd loads it via `EnvironmentFile=/etc/tapstar/tapstar.env`, but **your interactive shell does not** — so plain `python manage.py migrate` will silently apply migrations to SQLite while gunicorn keeps talking to Postgres. You then see:
+
+```
+django.db.utils.ProgrammingError: relation "settings_mgr_businesscategory" does not exist
+```
+
+…even though `migrate` reported "No migrations to apply". A telltale sign is `SELECT … FROM sqlite_master` in the migrate debug output — that means SQLite, not Postgres.
+
+**Always run migrate with the same env gunicorn uses.** From the deploy server:
+
+```bash
+cd /home/tapstar/app
+source venv/bin/activate
+set -a; source /etc/tapstar/tapstar.env; set +a   # exports DATABASE_URL etc.
+python manage.py migrate --noinput
+```
+
+Sanity-check the connection target before migrating:
+
+```bash
+echo "$DATABASE_URL"                              # should print postgres://…
+python manage.py dbshell -- -c '\conninfo'        # postgres prints the connection info; sqlite errors out
+```
+
+If you forgot the `set -a; source …` step and migrations went into `db.sqlite3`, no harm done — Postgres is still untouched. Just re-run the playbook with the env loaded and Postgres will catch up.
+
 ### Rollback
 
 ```bash
@@ -596,6 +624,7 @@ For media (logos, QRs), either rsync `/var/www/tapstar/media` to object storage 
 | Static files 404 | `collectstatic` not run, or nginx `alias` path wrong |
 | Uploaded images 403 | `/var/www/tapstar/media` not owned by `tapstar:tapstar` or readable by nginx |
 | Permission denied on socket | `RuntimeDirectory=tapstar` missing, or nginx runs as a user that can't read `/run/tapstar/gunicorn.sock` |
+| `relation "…" does not exist` after a deploy | Ran `migrate` without sourcing `/etc/tapstar/tapstar.env` — Django used SQLite instead of Postgres. See the pitfall callout in section 16. |
 
 ### Useful commands
 
