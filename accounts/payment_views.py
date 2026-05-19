@@ -4,89 +4,49 @@ import logging
 import uuid
 from datetime import timedelta
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseBadRequest, HttpResponse
-from django.shortcuts import redirect, render, get_object_or_404
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .easebuzz import InitiateParams, initiate_payment, verify_callback_hash
-from .models import SubscriptionPayment, User
+from .models import PricingPlan, SubscriptionPayment, User
 
 logger = logging.getLogger(__name__)
 
 
-PLAN_DETAILS = [
-    {
-        "code": User.PLAN_STARTER,
-        "name": "Starter",
-        "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_STARTER],
-        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_STARTER],
-        "tagline": "Forever free",
-        "features": [
-            "5 AI reviews / month",
-            "1 location",
-            "English + Hinglish",
-            "PNG QR code",
-            "Private feedback inbox",
-        ],
-        "not_included": [
-            "Negative review filter",
-            "Analytics dashboard",
-            "Custom keywords",
-            "Print templates (PDF)",
-        ],
-    },
-    {
-        "code": User.PLAN_GROWTH,
-        "name": "Growth",
-        "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_GROWTH],
-        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_GROWTH],
-        "tagline": "14-day free trial",
-        "features": [
-            "Unlimited AI reviews",
-            "1 location",
-            "All 6 language modes + Devanagari",
-            "Negative review filter",
-            "Custom keywords + blocked phrases",
-            "Analytics dashboard",
-            "WhatsApp review links",
-            "All 5 print templates (PDF)",
-        ],
-        "not_included": [
-            "Multi-location dashboard",
-        ],
-        "highlighted": True,
-    },
-    {
-        "code": User.PLAN_BUSINESS,
-        "name": "Business",
-        "price_paise": settings.PLAN_PRICES_PAISE[User.PLAN_BUSINESS],
-        "period": settings.PLAN_PERIOD_LABELS[User.PLAN_BUSINESS],
-        "tagline": "Best value — billed yearly",
-        "features": [
-            "Everything in Growth",
-            "Up to 5 locations",
-            "Multi-location dashboard",
-            "Per-location settings & analytics",
-            "Priority support",
-            "Save over monthly Growth pricing",
-        ],
-        "not_included": [],
-    },
-]
+def _active_plans():
+    return list(PricingPlan.objects.filter(is_active=True))
+
+
+def _plan_view_context(plan: PricingPlan) -> dict:
+    return {
+        "code": plan.code,
+        "name": plan.name,
+        "tagline": plan.tagline,
+        "tier": plan.tier,
+        "price_paise": plan.price_paise,
+        "price_rupees": plan.price_rupees,
+        "original_price_paise": plan.original_price_paise,
+        "original_price_rupees": plan.original_price_rupees,
+        "has_discount": plan.has_discount,
+        "discount_percent": plan.discount_percent,
+        "period": plan.period_label,
+        "features": list(plan.features or []),
+        "not_included": list(plan.not_included or []),
+        "highlighted": plan.highlighted,
+        "is_free": plan.is_free,
+    }
 
 
 @login_required
 def upgrade_page(request):
-    plans = []
-    for p in PLAN_DETAILS:
-        plans.append({**p, "price_rupees": f"{p['price_paise'] / 100:.0f}"})
+    plans = [_plan_view_context(p) for p in _active_plans()]
     return render(
         request,
         "accounts/upgrade.html",
@@ -100,22 +60,25 @@ def upgrade_page(request):
 @login_required
 @require_POST
 def subscribe(request, plan: str):
-    if plan not in settings.PLAN_PRICES_PAISE:
+    try:
+        pricing_plan = PricingPlan.objects.get(code=plan, is_active=True)
+    except PricingPlan.DoesNotExist:
         return HttpResponseBadRequest("Unknown plan")
-    if plan == User.PLAN_STARTER:
-        # Starter is free — just switch plan
-        request.user.subscription_plan = plan
+
+    if pricing_plan.is_free:
+        # Free plan — just switch.
+        request.user.subscription_plan = pricing_plan.code
         request.user.save(update_fields=["subscription_plan", "updated_at"])
-        messages.success(request, "Switched to Starter plan.")
+        messages.success(request, f"Switched to the {pricing_plan.name} plan.")
         return redirect("dashboard_home")
 
-    amount_paise = settings.PLAN_PRICES_PAISE[plan]
+    amount_paise = pricing_plan.price_paise
     amount_rupees = f"{amount_paise / 100:.2f}"
 
-    txnid = f"tap_{plan}_{request.user.pk}_{uuid.uuid4().hex[:10]}"
+    txnid = f"tap_{pricing_plan.code}_{request.user.pk}_{uuid.uuid4().hex[:10]}"
     payment = SubscriptionPayment.objects.create(
         user=request.user,
-        plan=plan,
+        plan=pricing_plan.code,
         amount_paise=amount_paise,
         easebuzz_txnid=txnid,
     )
@@ -125,13 +88,13 @@ def subscribe(request, plan: str):
     init_params = InitiateParams(
         txnid=txnid,
         amount_rupees=amount_rupees,
-        product_info=f"Tapstar {plan.title()} plan",
+        product_info=f"Tapstar {pricing_plan.name} plan",
         first_name=first_name,
         email=request.user.email,
         phone="",  # we don't collect phone at signup yet
         success_url=request.build_absolute_uri(reverse("payment_success")),
         failure_url=request.build_absolute_uri(reverse("payment_failure")),
-        udf1=plan,
+        udf1=pricing_plan.code,
         udf2=str(request.user.pk),
     )
 
@@ -149,12 +112,13 @@ def subscribe(request, plan: str):
     return redirect(result.pay_url)
 
 
-def _activate_subscription(user: User, plan: str, days: int | None = None):
+def _activate_subscription(user: User, plan_code: str, days: int | None = None):
     if days is None:
-        days = settings.PLAN_BILLING_PERIOD_DAYS.get(plan, 30)
+        pricing_plan = PricingPlan.objects.filter(code=plan_code).first()
+        days = pricing_plan.billing_period_days if pricing_plan else 30
     now = timezone.now()
     base = user.subscription_active_until if (user.subscription_active_until and user.subscription_active_until > now) else now
-    user.subscription_plan = plan
+    user.subscription_plan = plan_code
     user.subscription_status = User.STATUS_ACTIVE
     user.subscription_active_until = base + timedelta(days=days)
     user.save(update_fields=["subscription_plan", "subscription_status", "subscription_active_until", "updated_at"])

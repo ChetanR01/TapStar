@@ -47,6 +47,14 @@ class BusinessSettings(models.Model):
     language_mode = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, default=LANGUAGE_RANDOM)
     tone_mode = models.CharField(max_length=20, choices=TONE_CHOICES, default=TONE_RANDOM)
     allow_customer_language_change = models.BooleanField(default=True)
+    # Which language codes are exposed in the customer-facing language picker.
+    # Empty list = "all plan-allowed languages" (legacy default, kept for
+    # back-compat with rows created before this field existed).
+    enabled_languages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of language codes shown to customers in the review-page language picker. Empty = all languages your plan supports.",
+    )
     review_length = models.CharField(max_length=20, choices=LENGTH_CHOICES, default=LENGTH_MEDIUM)
     mention_business_name = models.BooleanField(default=True)
 

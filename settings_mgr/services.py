@@ -10,6 +10,7 @@ OVERRIDABLE_FIELDS = (
     "language_mode",
     "tone_mode",
     "allow_customer_language_change",
+    "enabled_languages",
     "review_length",
     "mention_business_name",
     "negative_filter_threshold",
@@ -45,6 +46,7 @@ class EffectiveSettings:
     blocked_phrases: list = field(default_factory=list)
     enabled_categories: list[EnabledCategory] = field(default_factory=list)
     menu_items: list = field(default_factory=list)
+    enabled_languages: list = field(default_factory=list)
 
     def enabled_category_keys(self) -> list[str]:
         return [c.key for c in self.enabled_categories]
@@ -120,4 +122,5 @@ def get_effective_settings(location: Location) -> EffectiveSettings:
         blocked_phrases=resolve("blocked_phrases") or [],
         enabled_categories=get_enabled_categories(location.business),
         menu_items=resolve("menu_items") or [],
+        enabled_languages=resolve("enabled_languages") or [],
     )

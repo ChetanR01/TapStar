@@ -685,10 +685,11 @@
     display: grid;
     gap: 20px;
     grid-template-columns: 1fr;
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
   }
-  @media (min-width: 860px) { .price-grid { grid-template-columns: repeat(3, 1fr); align-items: stretch; } }
+  @media (min-width: 760px) { .price-grid { grid-template-columns: repeat(2, 1fr); align-items: stretch; } }
+  @media (min-width: 1080px) { .price-grid { grid-template-columns: repeat(4, 1fr); } }
 
   .price-card {
     position: relative;
@@ -1273,71 +1274,43 @@
     </div>
 
     <div class="price-grid">
-      <!-- Starter -->
-      <div class="price-card" data-reveal>
-        <div class="tier-name">Starter</div>
-        <div class="tier-desc">Perfect to try it out on one counter.</div>
-        <div class="price">
-          <span class="currency">₹</span>
-          <span class="amount">0</span>
-          <span class="period">forever</span>
+      {% for plan in pricing_plans %}
+        <div class="price-card{% if plan.highlighted %} popular{% endif %}" data-reveal>
+          {% if plan.highlighted %}<span class="tag">Most popular</span>{% endif %}
+          <div class="tier-name">{{ plan.name }}</div>
+          <div class="tier-desc">{{ plan.tagline|default:" " }}</div>
+          {% if plan.is_free %}
+            <div class="price">
+              <span class="currency">₹</span>
+              <span class="amount">0</span>
+              <span class="period">forever</span>
+            </div>
+            <div class="price-sub">No card · Cancel anytime</div>
+          {% else %}
+            {% if plan.has_discount %}
+              <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+                <span style="color:#94a3b8;text-decoration:line-through;font-weight:600;font-size:18px;">₹{{ plan.original_price_rupees }}</span>
+                <span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:.03em;">−{{ plan.discount_percent }}%</span>
+              </div>
+            {% endif %}
+            <div class="price">
+              <span class="currency">₹</span>
+              <span class="amount">{{ plan.price_rupees }}</span>
+              <span class="period">{{ plan.period }}</span>
+            </div>
+            <div class="price-sub">
+              {% if plan.has_discount %}Limited-time launch price · {% endif %}UPI / cards / net banking
+            </div>
+          {% endif %}
+          <ul>
+            {% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}
+            {% for feature in plan.not_included %}<li class="muted">{{ feature }}</li>{% endfor %}
+          </ul>
+          <a href="{% url 'signup' %}" class="price-cta">
+            {% if plan.is_free %}Start free →{% else %}Get {{ plan.name }} →{% endif %}
+          </a>
         </div>
-        <div class="price-sub">No card · Cancel anytime</div>
-        <ul>
-          <li>1 location</li>
-          <li><strong>5 reviews / month</strong></li>
-          <li>English &amp; Hinglish (Roman)</li>
-          <li>QR PNG download</li>
-          <li>Private feedback inbox</li>
-          <li class="muted">Print templates (PDF)</li>
-          <li class="muted">Custom keywords / blocked phrases</li>
-        </ul>
-        <a href="{% url 'signup' %}" class="price-cta">Start free →</a>
-      </div>
-
-      <!-- Growth (popular) -->
-      <div class="price-card popular" data-reveal>
-        <span class="tag">Most popular</span>
-        <div class="tier-name">Growth</div>
-        <div class="tier-desc">For single-shop businesses that want every tool.</div>
-        <div class="price">
-          <span class="currency">₹</span>
-          <span class="amount">50</span>
-          <span class="period">/ month</span>
-        </div>
-        <div class="price-sub">UPI / cards / net banking</div>
-        <ul>
-          <li>1 location</li>
-          <li><strong>Unlimited</strong> reviews</li>
-          <li>All 6 languages + Devanagari</li>
-          <li>All 5 print templates (PDF)</li>
-          <li>Custom keywords &amp; blocked phrases</li>
-          <li>WhatsApp share link</li>
-          <li>Analytics dashboard</li>
-        </ul>
-        <a href="{% url 'signup' %}" class="price-cta">Start 14-day trial →</a>
-      </div>
-
-      <!-- Business -->
-      <div class="price-card" data-reveal>
-        <div class="tier-name">Business</div>
-        <div class="tier-desc">Best value — billed once a year. For multi-outlet owners.</div>
-        <div class="price">
-          <span class="currency">₹</span>
-          <span class="amount">499</span>
-          <span class="period">/ year</span>
-        </div>
-        <div class="price-sub">That's just ₹42/month · UPI / cards / net banking</div>
-        <ul>
-          <li><strong>Up to 5 locations</strong></li>
-          <li>Unlimited reviews across locations</li>
-          <li>Everything in Growth</li>
-          <li>Per-location settings override</li>
-          <li>Per-location analytics</li>
-          <li>Priority support</li>
-        </ul>
-        <a href="{% url 'signup' %}" class="price-cta">Start 14-day trial →</a>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </section>

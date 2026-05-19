@@ -1,13 +1,18 @@
-"""Subscription gating — decorator for function views and mixin for class-based views."""
+"""Subscription gating — decorator for function views and mixin for class-based views.
+
+``required_plan`` is a feature tier label (starter/growth/business). Each
+PricingPlan row carries a `tier`, and the user's current PricingPlan
+determines their effective tier. Trial users get the growth tier.
+"""
 
 from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 
-from .models import User
+from .models import TIER_BUSINESS, TIER_GROWTH, TIER_STARTER, User
 
 
-PLAN_ORDER = {User.PLAN_STARTER: 0, User.PLAN_GROWTH: 1, User.PLAN_BUSINESS: 2}
+PLAN_ORDER = {TIER_STARTER: 0, TIER_GROWTH: 1, TIER_BUSINESS: 2}
 
 
 def _has_plan(user, required_plan: str) -> bool:
@@ -15,7 +20,7 @@ def _has_plan(user, required_plan: str) -> bool:
         return False
     if not user.has_active_subscription:
         return False
-    return PLAN_ORDER.get(user.subscription_plan, 0) >= PLAN_ORDER.get(required_plan, 0)
+    return PLAN_ORDER.get(user.feature_tier, 0) >= PLAN_ORDER.get(required_plan, 0)
 
 
 def require_plan(required_plan: str):

@@ -382,7 +382,7 @@
             Inbox
             {% if unread_feedback_count %}<span class="badge">{{ unread_feedback_count }}</span>{% endif %}
           </a>
-          {% if user.subscription_plan == 'growth' or user.subscription_plan == 'business' %}
+          {% if user.has_paid_features %}
             <a href="{% url 'analytics_dashboard' %}">Analytics</a>
           {% endif %}
           <a href="{% url 'settings_page' %}">Settings</a>
@@ -413,7 +413,7 @@
           Inbox
           {% if unread_feedback_count %}<span class="badge">{{ unread_feedback_count }}</span>{% endif %}
         </a>
-        {% if user.subscription_plan == 'growth' or user.subscription_plan == 'business' %}
+        {% if user.has_paid_features %}
           <a href="{% url 'analytics_dashboard' %}">Analytics</a>
         {% endif %}
         <a href="{% url 'settings_page' %}">Settings</a>

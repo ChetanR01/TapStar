@@ -247,45 +247,10 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Tapstar <noreply@tapstar.i
 
 SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 
-# Subscription plan codes
-PLAN_STARTER = "starter"
-PLAN_GROWTH = "growth"
-PLAN_BUSINESS = "business"
-
-# Prices in paise (1 INR = 100 paise). Easebuzz expects rupees as a
-# decimal string but we store paise internally to keep integer math clean.
-#   Starter  — free forever
-#   Growth   — billed monthly
-#   Business — billed yearly (cheaper per-month than Growth by design)
-PLAN_PRICES_PAISE = {
-    PLAN_STARTER: 0,
-    PLAN_GROWTH: 5000,     # Rs.50 / month
-    PLAN_BUSINESS: 49900,  # Rs.499 / year
-}
-
-# How long a successful payment extends the subscription for each plan.
-PLAN_BILLING_PERIOD_DAYS = {
-    PLAN_STARTER: 0,       # free — not extended by payments
-    PLAN_GROWTH: 30,
-    PLAN_BUSINESS: 365,
-}
-
-# How to describe each plan's price in UI ("forever" / "/ month" / "/ year").
-PLAN_PERIOD_LABELS = {
-    PLAN_STARTER: "forever",
-    PLAN_GROWTH: "/ month",
-    PLAN_BUSINESS: "/ year",
-}
-
-# None = unlimited
-PLAN_REVIEW_LIMITS = {
-    PLAN_STARTER: 5,
-    PLAN_GROWTH: None,
-    PLAN_BUSINESS: None,
-}
-
-PLAN_LOCATION_LIMITS = {
-    PLAN_STARTER: 1,
-    PLAN_GROWTH: 1,
-    PLAN_BUSINESS: 5,
-}
+# Subscription plans are now defined as PricingPlan rows in the DB so the
+# admin can add/edit them at runtime. See accounts/models.py:PricingPlan and
+# the data-migration accounts/migrations/0003_pricingplan_and_seed.py.
+#
+# Feature-tier labels still live as constants on accounts.models.User
+# (PLAN_STARTER / PLAN_GROWTH / PLAN_BUSINESS) so feature-gating code keeps
+# working. Trial users get the Growth tier.

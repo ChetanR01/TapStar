@@ -4,7 +4,6 @@ from urllib.parse import quote
 import qrcode
 import qrcode.image.svg as qr_svg
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -14,7 +13,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from accounts.gating import require_plan
-from accounts.models import User
+from accounts.models import PricingPlan, User
 
 from .forms import BusinessOnboardingForm, LocationForm
 from .models import Business, Location
@@ -30,7 +29,8 @@ from .pdf import (
 def landing_page(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
-    return render(request, "landing.html")
+    pricing_plans = list(PricingPlan.objects.filter(is_active=True))
+    return render(request, "landing.html", {"pricing_plans": pricing_plans})
 
 
 @login_required
@@ -68,10 +68,7 @@ def dashboard_home(request):
         return redirect("business_onboarding")
     locations = list(business.locations.all())
     location_limit = _location_limit_for(request.user)
-    pro_allowed = (
-        request.user.has_active_subscription
-        and request.user.subscription_plan in (User.PLAN_GROWTH, User.PLAN_BUSINESS)
-    )
+    pro_allowed = request.user.has_paid_features
 
     owner_filter = {"location__business__owner": request.user}
     variant_owner_filter = {"request__location__business__owner": request.user}
@@ -120,8 +117,10 @@ def download_qr(request, location_id: int):
 # ----------------- Multi-location CRUD -----------------
 
 def _location_limit_for(user: User) -> int:
-    plan = user.subscription_plan if user.has_active_subscription else User.PLAN_STARTER
-    return settings.PLAN_LOCATION_LIMITS.get(plan, 1)
+    if not user.has_active_subscription:
+        return 1
+    plan = PricingPlan.objects.filter(code=user.subscription_plan).first()
+    return plan.location_limit if plan else 1
 
 
 @login_required
@@ -248,10 +247,7 @@ def location_print_pdf(request, location_id: int, design: str):
 def location_print_gallery(request, location_id: int):
     """Preview gallery for all print-ready QR templates."""
     location = get_object_or_404(Location, pk=location_id, business__owner=request.user)
-    pro_allowed = (
-        request.user.has_active_subscription
-        and request.user.subscription_plan in (User.PLAN_GROWTH, User.PLAN_BUSINESS)
-    )
+    pro_allowed = request.user.has_paid_features
     designs = [
         {
             "key": "standee",

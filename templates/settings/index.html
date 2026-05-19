@@ -228,6 +228,60 @@
     border-radius: 8px; padding: 9px 16px; font-weight: 600;
     cursor: pointer; font-family: inherit;
   }
+
+  .lang-pick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .lang-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    background: var(--surface);
+    user-select: none;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .lang-opt input[type=checkbox] {
+    appearance: none;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: #fff;
+    position: relative;
+    cursor: pointer;
+  }
+  .lang-opt input[type=checkbox]:checked {
+    background: var(--brand);
+    border-color: var(--brand);
+  }
+  .lang-opt input[type=checkbox]:checked::after {
+    content: "✓";
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+  }
+  .lang-opt:has(input:checked) {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
+  .lang-opt:has(input:checked) input[type=checkbox] {
+    background: #fff;
+    border-color: #fff;
+  }
+  .lang-opt:has(input:checked) input[type=checkbox]::after {
+    color: var(--brand);
+  }
 </style>
 {% endblock %}
 
@@ -316,6 +370,22 @@
         <span class="hint">AI will include "{{ business.name }}" in at least 2 variants. Helps Google SEO.</span>
       </div>
       <input type="checkbox" name="mention_business_name" {% if settings_obj.mention_business_name %}checked{% endif %}>
+    </div>
+
+    <div style="margin-top: 18px;">
+      <label style="font-weight:600;">Languages shown to customers</label>
+      <p class="muted" style="margin: 2px 0 10px; font-size: 13px;">
+        Tick the languages you want available in the review-page language picker. Defaults to all languages your plan supports.
+      </p>
+      <div class="lang-pick">
+        {% for opt in language_picker_options %}
+          <label class="lang-opt">
+            <input type="checkbox" name="enabled_languages" value="{{ opt.code }}" {% if opt.checked %}checked{% endif %}>
+            <span>{{ opt.label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <small class="muted">At least one option must remain ticked, otherwise we'll keep the previous selection.</small>
     </div>
   </div>
 

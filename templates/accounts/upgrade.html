@@ -5,7 +5,8 @@
 {% block extra_head %}
 <style>
   .plans { display: grid; gap: 16px; grid-template-columns: 1fr; margin-top: 8px; }
-  @media (min-width: 760px) { .plans { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 760px) { .plans { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1080px) { .plans { grid-template-columns: repeat(4, 1fr); } }
   .plan {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -13,11 +14,11 @@
     padding: 24px 20px;
     display: flex;
     flex-direction: column;
+    position: relative;
   }
   .plan.highlight {
     border-color: var(--brand);
     box-shadow: 0 4px 20px rgba(31,111,235,0.12);
-    position: relative;
   }
   .plan .badge {
     position: absolute;
@@ -31,10 +32,31 @@
     font-weight: 700;
     letter-spacing: 0.04em;
   }
+  .plan .save-tag {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
   .plan h2 { margin: 0 0 4px 0; }
-  .plan .tagline { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
-  .plan .price { font-size: 32px; font-weight: 800; margin-bottom: 2px; }
+  .plan .tagline { color: var(--muted); font-size: 14px; margin-bottom: 16px; min-height: 20px; }
+  .plan .price-block { margin-bottom: 16px; }
+  .plan .price { font-size: 32px; font-weight: 800; margin-bottom: 2px; line-height: 1.1; }
   .plan .price .per { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .plan .strike {
+    display: inline-block;
+    color: #9ca3af;
+    text-decoration: line-through;
+    font-size: 15px;
+    margin-right: 8px;
+    font-weight: 600;
+  }
   .plan ul { padding-left: 18px; margin: 16px 0; color: var(--ink); font-size: 14px; line-height: 1.7; }
   .plan ul.excluded { color: #9ca3af; text-decoration: line-through; }
   .plan form { margin-top: auto; }
@@ -67,13 +89,24 @@
     {% for plan in plans %}
       <div class="plan {% if plan.highlighted %}highlight{% endif %}">
         {% if plan.highlighted %}<span class="badge">Most popular</span>{% endif %}
+        {% if plan.has_discount and not plan.highlighted %}<span class="save-tag">Save {{ plan.discount_percent }}%</span>{% endif %}
         <h2>{{ plan.name }}</h2>
         <p class="tagline">{{ plan.tagline }}</p>
-        <div class="price">
-          {% if plan.price_paise %}
-            Rs.{{ plan.price_rupees }}<span class="per"> {{ plan.period }}</span>
+        <div class="price-block">
+          {% if plan.is_free %}
+            <div class="price">Free<span class="per"> {{ plan.period }}</span></div>
           {% else %}
-            Free<span class="per"> {{ plan.period }}</span>
+            {% if plan.has_discount %}
+              <div><span class="strike">Rs.{{ plan.original_price_rupees }}</span></div>
+            {% endif %}
+            <div class="price">
+              Rs.{{ plan.price_rupees }}<span class="per"> {{ plan.period }}</span>
+            </div>
+            {% if plan.has_discount %}
+              <div style="color:#059669;font-size:13px;font-weight:600;margin-top:4px;">
+                You save {{ plan.discount_percent }}%
+              </div>
+            {% endif %}
           {% endif %}
         </div>
 
@@ -90,10 +123,10 @@
           {% csrf_token %}
           {% if plan.code == current_plan %}
             <button type="button" class="current" disabled>Your current plan</button>
-          {% elif plan.code == 'starter' %}
-            <button type="submit" class="secondary">Switch to Starter</button>
+          {% elif plan.is_free %}
+            <button type="submit" class="secondary">Switch to {{ plan.name }}</button>
           {% else %}
-            <button type="submit">Upgrade to {{ plan.name }}</button>
+            <button type="submit">Get {{ plan.name }}</button>
           {% endif %}
         </form>
       </div>
@@ -101,6 +134,6 @@
   </div>
 
   <p class="muted" style="margin-top: 24px; font-size: 13px;">
-    Payments are monthly. Cancel any time — the plan runs till the end of your paid cycle.
+    One-time payment for the period you pick — no auto-debit. Renew whenever it suits you.
   </p>
 {% endblock %}

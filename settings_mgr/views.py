@@ -41,7 +41,7 @@ def _plan_allows_pro(user) -> bool:
     """Custom keywords, blocked phrases, and negative filter are Growth+ features."""
     if not user.is_authenticated:
         return False
-    return user.has_active_subscription and user.subscription_plan in (User.PLAN_GROWTH, User.PLAN_BUSINESS)
+    return user.has_paid_features
 
 
 def _plan_language_options(user):
@@ -143,6 +143,20 @@ def settings_page(request):
         if posted_language in allowed_languages:
             settings_obj.language_mode = posted_language
 
+        # Per-business language picker: keep only checked codes that the plan
+        # allows. If the owner unchecked everything we leave the existing
+        # value alone so the customer page doesn't end up empty.
+        posted_enabled_langs = [
+            code for code in request.POST.getlist("enabled_languages")
+            if code in allowed_languages
+        ]
+        if posted_enabled_langs:
+            # Ensure the default language is always included — otherwise the
+            # AI's default would never appear in the picker which is confusing.
+            if settings_obj.language_mode in allowed_languages and settings_obj.language_mode not in posted_enabled_langs:
+                posted_enabled_langs.append(settings_obj.language_mode)
+            settings_obj.enabled_languages = posted_enabled_langs
+
         posted_tone = request.POST.get("tone_mode", settings_obj.tone_mode)
         if posted_tone in {code for code, _ in TONE_CHOICES}:
             settings_obj.tone_mode = posted_tone
@@ -200,6 +214,24 @@ def settings_page(request):
         for row in category_tree
     ]
 
+    # If the owner hasn't picked any language options yet (legacy default),
+    # treat all plan-allowed languages as enabled. Once they save with at
+    # least one box ticked, only the ticked ones show on the customer page.
+    plan_allowed_codes = [code for code, _ in language_options]
+    saved_enabled = list(settings_obj.enabled_languages or [])
+    if not saved_enabled:
+        enabled_lang_set = set(plan_allowed_codes)
+    else:
+        enabled_lang_set = set(saved_enabled)
+    language_picker_options = [
+        {
+            "code": code,
+            "label": label,
+            "checked": code in enabled_lang_set,
+        }
+        for code, label in language_options
+    ]
+
     return render(
         request,
         "settings/index.html",
@@ -208,6 +240,7 @@ def settings_page(request):
             "settings_obj": settings_obj,
             "business_type_choices": list(grouped_choices()),
             "language_options": language_options,
+            "language_picker_options": language_picker_options,
             "tone_options": TONE_CHOICES,
             "length_options": LENGTH_CHOICES,
             "category_tree": category_tree,

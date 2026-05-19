@@ -69,6 +69,22 @@ def customer_review_page(request, token):
         for c in effective.enabled_categories
     ]
 
+    # Owner picks which language options the customer sees. Empty list (legacy
+    # default for rows created before this field existed) means "show all".
+    allowed_lang_codes = list(effective.enabled_languages or [])
+    if allowed_lang_codes:
+        language_options = [
+            opt for opt in CUSTOMER_LANGUAGE_OPTIONS if opt["code"] in allowed_lang_codes
+        ]
+        # If the owner accidentally disabled every option, fall back to the
+        # default language only so the page still works.
+        if not language_options:
+            language_options = [
+                opt for opt in CUSTOMER_LANGUAGE_OPTIONS if opt["code"] == effective.language_mode
+            ] or CUSTOMER_LANGUAGE_OPTIONS
+    else:
+        language_options = CUSTOMER_LANGUAGE_OPTIONS
+
     # Config passed to frontend JS
     page_config = {
         "token": str(location.qr_code_token),
@@ -79,7 +95,7 @@ def customer_review_page(request, token):
         "menuItems": effective.menu_items,
         "allowLanguageChange": effective.allow_customer_language_change,
         "defaultLanguage": effective.language_mode,
-        "languageOptions": CUSTOMER_LANGUAGE_OPTIONS,
+        "languageOptions": language_options,
         "negativeThreshold": effective.negative_filter_threshold,
         "apiUrls": {
             "generate": "/api/generate-review/",
@@ -146,11 +162,15 @@ def generate_review_api(request):
 
     effective = get_effective_settings(location)
 
-    # Allow customer to override language only if permitted
+    # Allow customer to override language only if permitted AND the owner has
+    # that language enabled on the customer-facing picker.
     language_mode = effective.language_mode
+    allowed_lang_codes = set(effective.enabled_languages or [])
+    valid_codes = {opt["code"] for opt in CUSTOMER_LANGUAGE_OPTIONS}
+    if not allowed_lang_codes:
+        allowed_lang_codes = valid_codes
     if effective.allow_customer_language_change and requested_language:
-        valid = {opt["code"] for opt in CUSTOMER_LANGUAGE_OPTIONS}
-        if requested_language in valid:
+        if requested_language in valid_codes and requested_language in allowed_lang_codes:
             language_mode = requested_language
 
     tone_mode = effective.tone_mode

@@ -102,6 +102,13 @@ FORBIDDEN_PHRASES = [
     "kuch special nahi", "kuch khaas nahi", "kuch khas nahi",
     "कुछ खास नहीं", "कुछ special नहीं",
     "not too bad", "not bad at all", "not that great",
+    # --- Bookish/literary Marathi words real customers don't use ---
+    # If the model emits these in a marathi review, regenerate with a more
+    # conversational alternative. We don't ban them in hindi reviews — only
+    # marathi sounds wrong with them.
+    "समाधानकारक", "पारदर्शक", "अपेक्षेप्रमाणे", "शिफारस करेन", "शिफारस करीन",
+    "कर्मचारी सभ्य", "कर्मचारी नम्र", "सभ्य आणि नम्र", "नम्र आणि सभ्य",
+    "अनुभव समाधानकारक", "बिलिंग पारदर्शक", "बिलिंग पारदर्शी",
 ]
 
 
@@ -113,28 +120,31 @@ FORBIDDEN_PHRASES = [
 # 2. Strictly TRUTHFUL — no invented weekdays, dates, names, dishes.
 # 3. Strictly BUSINESS-AGNOSTIC — work for gym, clinic, retail, restaurant.
 #
-# Marathi examples have been rewritten by a native speaker — no Hindi-isms
-# like "जगह" (use "जागा"), no awkward "तेच नीट" doublings, proper
-# Marathi verb conjugation ("होतं/आहे" not Hindi "था/है").
+# Marathi examples sound like how a real customer types on WhatsApp — NOT a
+# news anchor or a school essay. We avoid bookish Marathi words like
+# "समाधानकारक", "पारदर्शक", "शिफारस करेन", "अपेक्षेप्रमाणे", "नम्र", "सभ्य",
+# "कर्मचाऱ्यांनी" — these read formal and weird. Real Marathi sprinkles
+# English words ("staff", "clean", "rate") and stays casual.
 FEW_SHOT_EXAMPLES = {
     5: [
         "Genuinely happy with the visit. Staff was attentive and walked us through everything, place was well kept and the experience felt smooth end to end.",
         "Yahan ka experience kaafi achha raha. Staff polite tha, properly attend kiya, jo expect kiya tha wo bhi mila.",
         "Staff ने अच्छे से help की, properly समझाया भी। जगह clean थी और overall experience smooth रहा।",
         "अनुभव बढ़िया रहा। staff ने ध्यान से काम किया, जगह व्यवस्थित थी और जो चाहिए था वही मिला।",
-        "इथला अनुभव खूप छान होता. कर्मचाऱ्यांनी नीट लक्ष दिलं आणि जे हवं होतं ते व्यवस्थित मिळालं. जागा स्वच्छ आणि नीटनेटकी होती.",
-        "Ithla anubhav khup chhan hota. Staff nit bolla ani sagla vyavasthit zhala. Jaaga svachh ani nit-netaki hoti.",
+        "इथे आलो आणि एकदम मस्त वाटलं. Staff ने नीट बोललं आणि जे हवं होतं ते मिळालं. जागा पण clean होती.",
+        "खूप छान अनुभव होता. Staff helpful होतं, सगळं नीट समजावलं. परत नक्की येऊ.",
+        "Ithla anubhav khup chhan hota. Staff nit bolla ani sagla vyavasthit zhala. Jaaga pan clean hoti.",
     ],
     4: [
         "Solid experience. Staff was polite and the place was easy to deal with, what we got matched what we expected.",
         "Theek thaak experience tha. Staff helpful tha, baat properly samjhayi, jagah bhi properly maintained thi.",
         "अच्छा रहा। staff helpful था, properly attend किया और जो चाहिए था वही मिला।",
-        "अनुभव चांगला होता. कर्मचारी शांतपणे बोलले आणि जे हवं होतं तेच मिळालं.",
+        "बरं वाटलं इथे. Staff नीट होतं, जे हवं होतं ते मिळालं. जागा पण ठीक होती.",
     ],
     3: [
         "Okay experience. Did the job, staff was respectful, no complaints.",
         "Theek raha. Jo chahiye tha wahi mila, staff ne respect se baat ki.",
-        "बरं होतं. कामाचं काम झालं, कर्मचारी नीट बोलले.",
+        "ठीक होतं. कामाचं काम झालं, staff नीट बोललं.",
     ],
 }
 
@@ -159,11 +169,14 @@ LANGUAGE DEFINITIONS:
 - hinglish_devanagari: Same Hindi-English code-switching but written in Devanagari. English words stay in Roman. "Paneer tikka का taste अच्छा था, staff ने जल्दी serve किया।"
 - minglish: Marathi-English mix in Roman script. Use Marathi words like "jaaga" (NOT Hindi "jagah"), "chhan/chaan", "ahe/aahe", "barobar", "nit/neet". "Jevan chhan hota, staff pan helpful hote, jaaga pan vyavasthit hoti."
 - hindi: Pure Hindi in Devanagari. Conversational, not formal. "खाना अच्छा था। स्टाफ ने ठीक से बात की।"
-- marathi: Pure Marathi in Devanagari. Conversational. CRITICAL: this is MARATHI, not Hindi.
-  - Use Marathi words: "जागा" (not Hindi "जगह"), "आहे/होतं/होती" (not Hindi "है/था/थी"), "माझं/आमचं" (not Hindi "मेरा/हमारा"), "कर्मचारी" or "स्टाफ", "नीट/व्यवस्थित", "छान/चांगलं/बरं".
+- marathi: Everyday spoken Marathi in Devanagari — like a friend texting on WhatsApp, NOT like a newspaper or school essay. CRITICAL: this is MARATHI, not Hindi.
+  - SOUND CASUAL — mix in common English words the way real Marathi speakers do: "staff", "service", "rate", "clean", "menu", "experience", "helpful", "polite". Don't translate every English word into Sanskritised Marathi.
+  - Use Marathi grammar words: "जागा" (not Hindi "जगह"), "आहे/होतं/होती" (not Hindi "है/था/थी"), "माझं/आमचं" (not Hindi "मेरा/हमारा"), "नीट/व्यवस्थित", "छान/चांगलं/बरं/मस्त", "इथे/इथला" (not Hindi "यहाँ"), "पण" (not Hindi "भी"), "नक्की" (not Hindi "ज़रूर").
+  - FORBIDDEN bookish/literary words (sound stiff, no one uses these in casual talk): "समाधानकारक" (use "छान/मस्त"), "पारदर्शक" (use "clear" or "नीट"), "शिफारस" (use "सांगेन/recommend करेन"), "अपेक्षेप्रमाणे" (use "जे हवं होतं ते"), "नम्र" / "सभ्य" (use "नीट बोलले" or "polite"), "कर्मचाऱ्यांनी" / "कर्मचारी" (use "staff"), "सेवा" in formal sense (prefer "service" in Roman), "निगा" / "नीटनेटकी" (use "clean" / "नीट"), "तत्पर" (use "helpful"), "अनुभव समाधानकारक" (use "मस्त वाटलं" / "छान अनुभव"), "लय भारी" / "एक नंबर" (these are clichés, banned anyway).
   - Marathi sentences end with "." (period), NOT "।" (Hindi danda).
   - Avoid awkward doublings like "तेच नीट मिळालं" — write "तेच मिळालं" or "नीट मिळालं", not both.
-  - Examples: "जेवण छान होतं. सेवा पण व्यवस्थित होती." / "इथला अनुभव खूप छान होता. कर्मचारी नीट लक्ष देत होते."
+  - Good examples: "इथे आलो आणि एकदम मस्त वाटलं. Staff ने नीट attend केलं." / "खूप छान अनुभव होता. जे हवं होतं ते मिळालं, जागा पण clean होती." / "बरं वाटलं इथे. Staff helpful होतं, परत नक्की येऊ."
+  - Bad (too bookish — DO NOT write like this): "अनुभव समाधानकारक होता. कर्मचारी सभ्य आणि नम्र होते. बिलिंग पारदर्शक होती." — rewrite that as: "एकदम छान अनुभव होता. Staff नीट बोललं. Bill पण clear होतं."
 - english: Natural Indian English — not British/American. Indian sentence rhythm, mild informality.
 - random: Distribute across different styles. No two variants in the same language.
 
